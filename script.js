@@ -10,6 +10,7 @@ class WineRater {
         this.statusMessageEl = document.getElementById('status-message');
         this.scoreSummaryEl = document.querySelector('.score-summary');
         this.addBtn = document.getElementById('add-wine-btn');
+        this.helpBtn = document.getElementById('help-btn');
 
         this.init();
     }
@@ -21,6 +22,7 @@ class WineRater {
         }
 
         this.addBtn.addEventListener('click', () => this.addWine());
+        this.helpBtn.addEventListener('click', () => this.showHelp());
         this.updateUI();
     }
 
@@ -139,14 +141,14 @@ class WineRater {
         if (Math.abs(total - this.targetScore) < 0.01) {
             this.scoreSummaryEl.classList.add('valid');
             this.scoreSummaryEl.classList.remove('invalid');
-            this.statusMessageEl.textContent = 'Perfect! Total score is 10.00';
+            this.statusMessageEl.textContent = '完璧！合計が10.00点です';
             this.statusMessageEl.style.color = 'var(--success)';
         } else {
             this.scoreSummaryEl.classList.remove('valid');
             this.scoreSummaryEl.classList.add('invalid');
             const diff = (this.targetScore - total).toFixed(2);
-            const action = diff > 0 ? 'Add' : 'Remove';
-            this.statusMessageEl.textContent = `${action} ${Math.abs(diff)} points to reach 10.00`;
+            const action = diff > 0 ? 'あと' : '';
+            this.statusMessageEl.textContent = `${action}${Math.abs(diff)}点で10.00点になります`;
             this.statusMessageEl.style.color = 'var(--error)';
         }
     }
@@ -160,7 +162,7 @@ class WineRater {
         div.innerHTML = `
             <span class="wine-index">${this.wines.length}</span>
             <div class="input-group">
-                <input type="text" placeholder="Wine Name" value="${wine.name}"
+                <input type="text" placeholder="ワイン名" value="${wine.name}"
                     oninput="app.updateName(${wine.id}, this.value)">
             </div>
             <div class="score-control">
@@ -187,6 +189,62 @@ class WineRater {
         `;
 
         this.wineListEl.appendChild(div);
+    }
+
+    showHelp() {
+        const helpContent = `
+            <div class="help-modal" id="help-modal">
+                <div class="help-content">
+                    <div class="help-header">
+                        <h2>使い方</h2>
+                        <button class="btn-close" onclick="document.getElementById('help-modal').remove()">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="help-body">
+                        <section>
+                            <h3>📝 基本的な使い方</h3>
+                            <ol>
+                                <li>ワイン名を入力します（すべて入力すると自動で点数が割り振られます）</li>
+                                <li>各ワインの <strong>+</strong> / <strong>−</strong> ボタンで0.25刻みで点数を調整</li>
+                                <li>合計が <strong>10.00点</strong> になるよう調整してください</li>
+                            </ol>
+                        </section>
+                        <section>
+                            <h3>🍷 ワインの追加・削除</h3>
+                            <ul>
+                                <li><strong>ワインを追加</strong> ボタンで最大11個まで追加可能</li>
+                                <li>ゴミ箱アイコンで削除（最低3個は残ります）</li>
+                            </ul>
+                        </section>
+                        <section>
+                            <h3>✨ 自動割り振り機能</h3>
+                            <p>すべてのワイン名を入力すると、自動的に合計10点になるよう均等に点数が割り振られます。</p>
+                        </section>
+                        <section>
+                            <h3>💡 ヒント</h3>
+                            <ul>
+                                <li>合計が10.00点ピッタリになると緑色で表示されます</li>
+                                <li>点数は0.25刻みで調整できます</li>
+                                <li>各ワインは0点から設定可能です</li>
+                            </ul>
+                        </section>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', helpContent);
+
+        // Close on background click
+        const modal = document.getElementById('help-modal');
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
     }
 }
 
