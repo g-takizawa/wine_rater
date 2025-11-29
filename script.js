@@ -1,7 +1,7 @@
 class WineRater {
     constructor() {
         this.wines = [];
-        this.minWines = 3;
+        this.minWines = 10;
         this.maxWines = 11;
         this.targetScore = 10.0;
 
