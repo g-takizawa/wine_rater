@@ -203,10 +203,16 @@ class WineRater {
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
+                e.stopPropagation();
                 const allInputs = Array.from(document.querySelectorAll('.wine-input'));
                 const currentIndex = allInputs.indexOf(input);
                 if (currentIndex < allInputs.length - 1) {
-                    allInputs[currentIndex + 1].focus();
+                    const nextInput = allInputs[currentIndex + 1];
+                    // Use setTimeout to ensure proper focus without value copying
+                    setTimeout(() => {
+                        nextInput.focus();
+                        nextInput.setSelectionRange(nextInput.value.length, nextInput.value.length);
+                    }, 0);
                 }
             }
         });
