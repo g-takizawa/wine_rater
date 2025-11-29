@@ -166,8 +166,7 @@ class WineRater {
                     class="wine-input"
                     data-wine-id="${wine.id}"
                     placeholder="ワイン名"
-                    value="${wine.name}"
-                    oninput="app.updateName(${wine.id}, this.value)">
+                    value="${wine.name}">
             </div>
             <div class="score-control">
                 <button class="btn-icon" onclick="app.updateScore(${wine.id}, -0.25)">
@@ -194,8 +193,13 @@ class WineRater {
 
         this.wineListEl.appendChild(div);
 
-        // Add Enter key listener to move to next input
+        // Add input listener
         const input = div.querySelector('.wine-input');
+        input.addEventListener('input', (e) => {
+            this.updateName(wine.id, e.target.value);
+        });
+
+        // Add Enter key listener to move to next input
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
