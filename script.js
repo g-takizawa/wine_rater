@@ -2,7 +2,7 @@ class WineRater {
     constructor() {
         this.wines = [];
         this.minWines = 10;
-        this.maxWines = 11;
+        this.maxWines = 20;
         this.targetScore = 10.0;
 
         this.wineListEl = document.getElementById('wine-list');
@@ -162,7 +162,11 @@ class WineRater {
         div.innerHTML = `
             <span class="wine-index">${this.wines.length}</span>
             <div class="input-group">
-                <input type="text" placeholder="ワイン名" value="${wine.name}"
+                <input type="text"
+                    class="wine-input"
+                    data-wine-id="${wine.id}"
+                    placeholder="ワイン名"
+                    value="${wine.name}"
                     oninput="app.updateName(${wine.id}, this.value)">
             </div>
             <div class="score-control">
@@ -189,6 +193,19 @@ class WineRater {
         `;
 
         this.wineListEl.appendChild(div);
+
+        // Add Enter key listener to move to next input
+        const input = div.querySelector('.wine-input');
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const allInputs = Array.from(document.querySelectorAll('.wine-input'));
+                const currentIndex = allInputs.indexOf(input);
+                if (currentIndex < allInputs.length - 1) {
+                    allInputs[currentIndex + 1].focus();
+                }
+            }
+        });
     }
 
     showHelp() {
