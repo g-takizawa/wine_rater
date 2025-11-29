@@ -243,8 +243,8 @@ class WineRater {
                         <section>
                             <h3>🍷 ワインの追加・削除</h3>
                             <ul>
-                                <li><strong>ワインを追加</strong> ボタンで最大11個まで追加可能</li>
-                                <li>ゴミ箱アイコンで削除（最低3個は残ります）</li>
+                                <li><strong>ワインを追加</strong> ボタンで最大20個まで追加可能</li>
+                                <li>ゴミ箱アイコンで削除（最低10個は残ります）</li>
                             </ul>
                         </section>
                         <section>
