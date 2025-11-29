@@ -1,15 +1,17 @@
 class WineRater {
-    constructor() {
+    constructor(setId) {
+        this.setId = setId;
         this.wines = [];
         this.minWines = 10;
         this.maxWines = 20;
         this.targetScore = 10.0;
 
-        this.wineListEl = document.getElementById('wine-list');
-        this.totalScoreEl = document.getElementById('total-score');
-        this.statusMessageEl = document.getElementById('status-message');
-        this.scoreSummaryEl = document.querySelector('.score-summary');
-        this.addBtn = document.getElementById('add-wine-btn');
+        this.wineListEl = document.getElementById(`wine-list-${setId}`);
+        this.totalScoreEl = document.getElementById(`total-score-${setId}`);
+        this.statusMessageEl = document.getElementById(`status-message-${setId}`);
+        this.scoreSummaryEl = this.wineListEl.closest('.glass-container').querySelector('.score-summary');
+        this.addBtn = document.getElementById(`add-wine-btn-${setId}`);
+        this.copyBtn = document.getElementById(`copy-btn-${setId}`);
         this.helpBtn = document.getElementById('help-btn');
 
         this.init();
@@ -22,7 +24,10 @@ class WineRater {
         }
 
         this.addBtn.addEventListener('click', () => this.addWine());
-        this.helpBtn.addEventListener('click', () => this.showHelp());
+        this.copyBtn.addEventListener('click', () => this.showCopyDialog());
+        if (this.helpBtn) {
+            this.helpBtn.addEventListener('click', () => this.showHelp());
+        }
         this.updateUI();
     }
 
@@ -46,7 +51,7 @@ class WineRater {
 
         const index = this.wines.findIndex(w => w.id === id);
         if (index !== -1) {
-            const el = document.getElementById(`wine-${id}`);
+            const el = document.getElementById(`wine-${this.setId}-${id}`);
             el.style.opacity = '0';
             el.style.transform = 'translateY(10px)';
 
@@ -65,7 +70,7 @@ class WineRater {
             const newScore = Math.max(0, wine.score + change);
             wine.score = newScore;
 
-            const wineItem = document.getElementById(`wine-${id}`);
+            const wineItem = document.getElementById(`wine-${this.setId}-${id}`);
             const scoreDisplay = wineItem.querySelector('.score-display');
             scoreDisplay.textContent = newScore.toFixed(2);
 
@@ -103,7 +108,7 @@ class WineRater {
             }
             wine.score = score;
 
-            const wineItem = document.getElementById(`wine-${wine.id}`);
+            const wineItem = document.getElementById(`wine-${this.setId}-${wine.id}`);
             if (wineItem) {
                 const scoreDisplay = wineItem.querySelector('.score-display');
                 if (scoreDisplay) scoreDisplay.textContent = score.toFixed(2);
@@ -118,7 +123,7 @@ class WineRater {
     }
 
     updateIndices() {
-        const indices = document.querySelectorAll('.wine-index');
+        const indices = this.wineListEl.querySelectorAll('.wine-index');
         indices.forEach((el, i) => {
             el.textContent = i + 1;
         });
@@ -132,7 +137,7 @@ class WineRater {
         this.addBtn.disabled = this.wines.length >= this.maxWines;
 
         // Update Remove Buttons State
-        const removeBtns = document.querySelectorAll('.btn-remove');
+        const removeBtns = this.wineListEl.querySelectorAll('.btn-remove');
         removeBtns.forEach(btn => {
             btn.disabled = this.wines.length <= this.minWines;
         });
@@ -156,7 +161,7 @@ class WineRater {
     renderWine(wine, animate) {
         const div = document.createElement('div');
         div.className = 'wine-item';
-        div.id = `wine-${wine.id}`;
+        div.id = `wine-${this.setId}-${wine.id}`;
         if (!animate) div.style.animation = 'none';
 
         div.innerHTML = `
@@ -169,22 +174,22 @@ class WineRater {
                     value="${wine.name}">
             </div>
             <div class="score-control">
-                <button class="btn-icon" onclick="app.updateScore(${wine.id}, -0.25)">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                <button class="btn-icon" data-action="decrease" data-wine-id="${wine.id}">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
                         <line x1="5" y1="12" x2="19" y2="12"></line>
                     </svg>
                 </button>
                 <span class="score-display">${wine.score.toFixed(2)}</span>
-                <button class="btn-icon" onclick="app.updateScore(${wine.id}, 0.25)">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                <button class="btn-icon" data-action="increase" data-wine-id="${wine.id}">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
                         <line x1="12" y1="5" x2="12" y2="19"></line>
                         <line x1="5" y1="12" x2="19" y2="12"></line>
                     </svg>
                 </button>
             </div>
-            <button class="btn-icon btn-remove" onclick="app.removeWine(${wine.id})"
+            <button class="btn-icon btn-remove" data-action="remove" data-wine-id="${wine.id}"
                 ${this.wines.length <= this.minWines ? 'disabled' : ''}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="3 6 5 6 21 6"></polyline>
                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                 </svg>
@@ -204,16 +209,84 @@ class WineRater {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 e.stopPropagation();
-                const allInputs = Array.from(document.querySelectorAll('.wine-input'));
+                const allInputs = Array.from(this.wineListEl.querySelectorAll('.wine-input'));
                 const currentIndex = allInputs.indexOf(input);
                 if (currentIndex < allInputs.length - 1) {
                     const nextInput = allInputs[currentIndex + 1];
-                    // Use setTimeout to ensure proper focus without value copying
                     setTimeout(() => {
                         nextInput.focus();
                         nextInput.setSelectionRange(nextInput.value.length, nextInput.value.length);
                     }, 0);
                 }
+            }
+        });
+
+        // Add button listeners
+        const decreaseBtn = div.querySelector('[data-action="decrease"]');
+        const increaseBtn = div.querySelector('[data-action="increase"]');
+        const removeBtn = div.querySelector('[data-action="remove"]');
+
+        decreaseBtn.addEventListener('click', () => this.updateScore(wine.id, -0.25));
+        increaseBtn.addEventListener('click', () => this.updateScore(wine.id, 0.25));
+        removeBtn.addEventListener('click', () => this.removeWine(wine.id));
+    }
+
+    copyWineNamesFrom(sourceRater) {
+        sourceRater.wines.forEach((sourceWine, index) => {
+            if (this.wines[index]) {
+                this.wines[index].name = sourceWine.name;
+                // Update DOM
+                const wineItem = document.getElementById(`wine-${this.setId}-${this.wines[index].id}`);
+                if (wineItem) {
+                    const input = wineItem.querySelector('.wine-input');
+                    if (input) input.value = sourceWine.name;
+                }
+            }
+        });
+        this.checkAndDistributeScores();
+    }
+
+    showCopyDialog() {
+        const otherSets = [1, 2, 3].filter(id => id !== this.setId);
+        const titles = otherSets.map(id => {
+            const titleInput = document.getElementById(`title-${id}`);
+            return titleInput ? titleInput.value : `セット${id}`;
+        });
+
+        const dialog = document.createElement('div');
+        dialog.className = 'copy-dialog';
+        dialog.innerHTML = `
+            <div class="copy-dialog-content">
+                <h3>コピー元を選択</h3>
+                <div class="copy-dialog-buttons">
+                    <button class="copy-dialog-btn" data-source="${otherSets[0]}">${titles[0]}</button>
+                    <button class="copy-dialog-btn" data-source="${otherSets[1]}">${titles[1]}</button>
+                    <button class="copy-dialog-btn cancel">キャンセル</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(dialog);
+
+        // Add click handlers
+        const buttons = dialog.querySelectorAll('.copy-dialog-btn');
+        buttons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const sourceId = btn.dataset.source;
+                if (sourceId) {
+                    const sourceRater = appInstances[sourceId];
+                    if (sourceRater) {
+                        this.copyWineNamesFrom(sourceRater);
+                    }
+                }
+                dialog.remove();
+            });
+        });
+
+        // Close on background click
+        dialog.addEventListener('click', (e) => {
+            if (e.target === dialog) {
+                dialog.remove();
             }
         });
     }
@@ -252,11 +325,16 @@ class WineRater {
                             <p>すべてのワイン名を入力すると、自動的に合計10点になるよう均等に点数が割り振られます。</p>
                         </section>
                         <section>
+                            <h3>📋 ワイン名のコピー</h3>
+                            <p>各セットのヘッダーにある<strong>コピーボタン</strong>をクリックすると、他のセットからワイン名をコピーできます。点数はコピーされません。</p>
+                        </section>
+                        <section>
                             <h3>💡 ヒント</h3>
                             <ul>
                                 <li>合計が10.00点ピッタリになると緑色で表示されます</li>
                                 <li>点数は0.25刻みで調整できます</li>
-                                <li>各ワインは0点から設定可能です</li>
+                                <li>Enterキーで次のワイン入力欄に移動します</li>
+                                <li>セット名は編集可能です</li>
                             </ul>
                         </section>
                     </div>
@@ -275,5 +353,12 @@ class WineRater {
     }
 }
 
-// Initialize App
-const app = new WineRater();
+// Initialize 3 instances
+const appInstances = {
+    1: new WineRater(1),
+    2: new WineRater(2),
+    3: new WineRater(3)
+};
+
+// Keep backwards compatibility
+const app = appInstances[1];

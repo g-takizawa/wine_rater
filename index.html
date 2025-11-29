@@ -15,49 +15,161 @@
 
 <body>
     <div class="background-gradient"></div>
-    <div class="glass-container">
-        <header>
-            <div class="header-content">
-                <div>
-                    <h1>ワイン評価システム</h1>
-                    <p class="subtitle">10点満点で評価</p>
+    <div class="sets-container">
+        <!-- Set 1 -->
+        <div class="glass-container" id="set-1">
+            <header>
+                <div class="header-content">
+                    <div>
+                        <input type="text" class="set-title" id="title-1" value="第1回戦" placeholder="セット名">
+                        <p class="subtitle">10点満点で評価</p>
+                    </div>
+                    <div class="header-buttons">
+                        <button id="copy-btn-1" class="btn-copy" title="ワイン名をコピー">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                        </button>
+                        <button id="help-btn" class="btn-help" title="使い方">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                                <circle cx="12" cy="17" r="0.5" fill="currentColor"></circle>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
-                <button id="help-btn" class="btn-help" title="使い方">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-                        <circle cx="12" cy="17" r="0.5" fill="currentColor"></circle>
-                    </svg>
-                </button>
-            </div>
-        </header>
+            </header>
 
-        <main>
-            <div class="score-summary">
-                <div class="score-card">
-                    <span class="label">合計点</span>
-                    <span class="value" id="total-score">0.00</span>
-                    <span class="target">/ 10.00</span>
+            <main>
+                <div class="score-summary">
+                    <div class="score-card">
+                        <span class="label">合計点</span>
+                        <span class="value" id="total-score-1">0.00</span>
+                        <span class="target">/ 10.00</span>
+                    </div>
+                    <div class="status-message" id="status-message-1">
+                        合計10.00点になるよう調整してください
+                    </div>
                 </div>
-                <div class="status-message" id="status-message">
-                    合計10.00点になるよう調整してください
+
+                <div class="wine-list" id="wine-list-1">
+                    <!-- Wine items will be injected here -->
                 </div>
-            </div>
 
-            <div class="wine-list" id="wine-list">
-                <!-- Wine items will be injected here -->
-            </div>
+                <div class="controls">
+                    <button id="add-wine-btn-1" class="btn-primary">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        ワインを追加
+                    </button>
+                </div>
+            </main>
+        </div>
 
-            <div class="controls">
-                <button id="add-wine-btn" class="btn-primary">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                    ワインを追加
-                </button>
-            </div>
-        </main>
+        <!-- Set 2 -->
+        <div class="glass-container" id="set-2">
+            <header>
+                <div class="header-content">
+                    <div>
+                        <input type="text" class="set-title" id="title-2" value="第2回戦" placeholder="セット名">
+                        <p class="subtitle">10点満点で評価</p>
+                    </div>
+                    <div class="header-buttons">
+                        <button id="copy-btn-2" class="btn-copy" title="ワイン名をコピー">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <main>
+                <div class="score-summary">
+                    <div class="score-card">
+                        <span class="label">合計点</span>
+                        <span class="value" id="total-score-2">0.00</span>
+                        <span class="target">/ 10.00</span>
+                    </div>
+                    <div class="status-message" id="status-message-2">
+                        合計10.00点になるよう調整してください
+                    </div>
+                </div>
+
+                <div class="wine-list" id="wine-list-2">
+                    <!-- Wine items will be injected here -->
+                </div>
+
+                <div class="controls">
+                    <button id="add-wine-btn-2" class="btn-primary">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        ワインを追加
+                    </button>
+                </div>
+            </main>
+        </div>
+
+        <!-- Set 3 -->
+        <div class="glass-container" id="set-3">
+            <header>
+                <div class="header-content">
+                    <div>
+                        <input type="text" class="set-title" id="title-3" value="第3回戦" placeholder="セット名">
+                        <p class="subtitle">10点満点で評価</p>
+                    </div>
+                    <div class="header-buttons">
+                        <button id="copy-btn-3" class="btn-copy" title="ワイン名をコピー">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <main>
+                <div class="score-summary">
+                    <div class="score-card">
+                        <span class="label">合計点</span>
+                        <span class="value" id="total-score-3">0.00</span>
+                        <span class="target">/ 10.00</span>
+                    </div>
+                    <div class="status-message" id="status-message-3">
+                        合計10.00点になるよう調整してください
+                    </div>
+                </div>
+
+                <div class="wine-list" id="wine-list-3">
+                    <!-- Wine items will be injected here -->
+                </div>
+
+                <div class="controls">
+                    <button id="add-wine-btn-3" class="btn-primary">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        ワインを追加
+                    </button>
+                </div>
+            </main>
+        </div>
     </div>
     <script src="script.js"></script>
 </body>
