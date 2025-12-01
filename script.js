@@ -46,6 +46,7 @@ class WineRater {
         this.wines.push(wine);
         this.renderWine(wine, animate);
         this.updateUI();
+        saveToLocalStorage(); // Auto-save
     }
 
     removeWine(id) {
@@ -69,6 +70,7 @@ class WineRater {
                     this.updateIndices();
                     this.checkAndDistributeScores();
                     this.updateUI();
+                    saveToLocalStorage(); // Auto-save
                 }
             }, 200);
         }
@@ -86,6 +88,7 @@ class WineRater {
             scoreDisplay.textContent = newScore.toFixed(2);
 
             this.updateUI();
+            saveToLocalStorage(); // Auto-save
         }
     }
 
@@ -94,6 +97,7 @@ class WineRater {
         if (wine) {
             wine.name = name;
             this.checkAndDistributeScores();
+            saveToLocalStorage(); // Auto-save
         }
     }
 
@@ -429,6 +433,19 @@ const appInstances = {
 // Keep backwards compatibility
 const app = appInstances[1];
 
+// Load saved data from localStorage
+loadFromLocalStorage();
+
+// Add listeners for title changes (auto-save)
+[1, 2, 3, 4].forEach(setId => {
+    const titleInput = document.getElementById(`title-${setId}`);
+    if (titleInput) {
+        titleInput.addEventListener('input', () => {
+            saveToLocalStorage();
+        });
+    }
+});
+
 function generateCSVContent() {
     const rows = [['セット名', 'ワイン名', '点数']];
 
@@ -444,6 +461,115 @@ function generateCSVContent() {
     });
 
     return rows.map(e => e.join(",")).join("\n");
+}
+
+// ========================================
+// LocalStorage Persistence
+// ========================================
+
+const STORAGE_KEY = 'wine-rater-data';
+
+function saveToLocalStorage() {
+    try {
+        const data = {
+            sets: {},
+            lastSaved: new Date().toISOString()
+        };
+
+        // Save each set's data
+        Object.values(appInstances).forEach(rater => {
+            const titleInput = document.getElementById(`title-${rater.setId}`);
+            const setTitle = titleInput ? titleInput.value : `セット${rater.setId}`;
+
+            data.sets[rater.setId] = {
+                title: setTitle,
+                isManualScore: rater.isManualScore,
+                wines: rater.wines.map(wine => ({
+                    name: wine.name,
+                    score: wine.score
+                }))
+            };
+        });
+
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (error) {
+        console.error('Failed to save to localStorage:', error);
+    }
+}
+
+function loadFromLocalStorage() {
+    try {
+        const savedData = localStorage.getItem(STORAGE_KEY);
+        if (!savedData) return false;
+
+        const data = JSON.parse(savedData);
+        if (!data.sets) return false;
+
+        // Restore each set's data
+        Object.keys(data.sets).forEach(setId => {
+            const savedSet = data.sets[setId];
+            const rater = appInstances[setId];
+
+            if (!rater || !savedSet) return;
+
+            // Restore title
+            const titleInput = document.getElementById(`title-${setId}`);
+            if (titleInput && savedSet.title) {
+                titleInput.value = savedSet.title;
+            }
+
+            // Restore isManualScore flag
+            if (savedSet.isManualScore !== undefined) {
+                rater.isManualScore = savedSet.isManualScore;
+            }
+
+            // Clear existing wines
+            rater.wines = [];
+            rater.wineListEl.innerHTML = '';
+
+            // Restore wines
+            if (savedSet.wines && savedSet.wines.length > 0) {
+                savedSet.wines.forEach((savedWine, index) => {
+                    const id = Date.now() + Math.random() + index;
+                    const wine = {
+                        id,
+                        name: savedWine.name || '',
+                        score: savedWine.score || 0.0
+                    };
+                    rater.wines.push(wine);
+                    rater.renderWine(wine, false); // No animation on restore
+                });
+            } else {
+                // If no saved wines, initialize with minimum
+                for (let i = 0; i < rater.minWines; i++) {
+                    rater.addWine(false);
+                }
+            }
+
+            rater.updateUI();
+        });
+
+        return true;
+    } catch (error) {
+        console.error('Failed to load from localStorage:', error);
+        return false;
+    }
+}
+
+function clearLocalStorage() {
+    const confirmed = confirm('すべてのデータをリセットします。よろしいですか？\n\nこの操作は取り消せません。');
+
+    if (confirmed) {
+        try {
+            localStorage.removeItem(STORAGE_KEY);
+
+            // Reload the page to reset everything
+            window.location.reload();
+        } catch (error) {
+            console.error('Failed to clear localStorage:', error);
+            alert('データのリセットに失敗しました。');
+        }
+    }
 }
 
 function generateTSVContent() {
@@ -632,3 +758,4 @@ function showExportModal() {
 }
 
 document.getElementById('export-btn').addEventListener('click', showExportModal);
+document.getElementById('reset-btn').addEventListener('click', clearLocalStorage);
