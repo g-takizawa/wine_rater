@@ -423,6 +423,22 @@ function generateCSVContent() {
     return rows.map(e => e.join(",")).join("\n");
 }
 
+function generateTSVContent() {
+    const rows = [['セット名', 'ワイン名', '点数']];
+
+    Object.values(appInstances).forEach(rater => {
+        const titleInput = document.getElementById(`title-${rater.setId}`);
+        const setName = titleInput ? titleInput.value : `セット${rater.setId}`;
+
+        rater.wines.forEach(wine => {
+            const name = wine.name || '';
+            rows.push([setName, name, wine.score.toFixed(2)]);
+        });
+    });
+
+    return rows.map(e => e.join("\t")).join("\n");
+}
+
 function downloadCSV(csvContent) {
     // Generate filename with timestamp
     const now = new Date();
@@ -549,13 +565,39 @@ function showExportModal() {
     });
 
     document.getElementById('modal-copy-btn').addEventListener('click', () => {
-        const textarea = document.getElementById('csv-textarea');
-        textarea.select();
-        document.execCommand('copy');
+        // Use TSV format for clipboard (better for Excel/Sheets paste)
+        const tsvContent = generateTSVContent();
 
-        const status = document.getElementById('copy-status');
-        status.textContent = 'コピーしました！';
-        setTimeout(() => status.textContent = '', 2000);
+        // Use modern Clipboard API if available
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(tsvContent).then(() => {
+                const status = document.getElementById('copy-status');
+                status.textContent = 'コピーしました！Excelなどに貼り付けできます';
+                setTimeout(() => status.textContent = '', 2000);
+            }).catch(err => {
+                console.error('Clipboard copy failed:', err);
+                // Fallback to old method
+                fallbackCopy(tsvContent);
+            });
+        } else {
+            // Fallback for older browsers
+            fallbackCopy(tsvContent);
+        }
+
+        function fallbackCopy(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+
+            const status = document.getElementById('copy-status');
+            status.textContent = 'コピーしました！Excelなどに貼り付けできます';
+            setTimeout(() => status.textContent = '', 2000);
+        }
     });
 
     // Close on background click
