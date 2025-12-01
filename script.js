@@ -463,6 +463,16 @@ function downloadCSV(csvContent) {
 function showExportModal() {
     const csvContent = generateCSVContent();
 
+    // Generate filename with timestamp
+    const now = new Date();
+    const timestamp = now.toISOString().replace(/[-:T.]/g, '').slice(0, 14);
+    const filename = `wine_ratings_${timestamp}.csv`;
+
+    // Create Blob URL
+    const bom = new Uint8Array([0xEF, 0xBB, 0xBF]); // UTF-8 BOM
+    const blob = new Blob([bom, csvContent], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+
     const modal = document.createElement('div');
     modal.className = 'help-modal'; // Reuse help modal styling
     modal.id = 'export-modal';
@@ -481,14 +491,14 @@ function showExportModal() {
             <div class="help-body">
                 <p>以下のボタンからダウンロード、またはテキストをコピーしてください。</p>
                 <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                    <button id="modal-download-btn" class="btn-primary" style="flex: 1;">
+                    <a id="modal-download-btn" class="btn-primary" href="${url}" download="${filename}" style="flex: 1; text-decoration: none; display: flex; align-items: center; justify-content: center;">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 5px;">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                             <polyline points="7 10 12 15 17 10"></polyline>
                             <line x1="12" y1="15" x2="12" y2="3"></line>
                         </svg>
                         CSVをダウンロード
-                    </button>
+                    </a>
                     <button id="modal-copy-btn" class="btn-secondary" style="flex: 1; background: white; border: 1px solid var(--primary); color: var(--primary);">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 5px;">
                             <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
@@ -505,12 +515,14 @@ function showExportModal() {
 
     document.body.appendChild(modal);
 
-    // Event Listeners
-    document.getElementById('close-export-modal').addEventListener('click', () => modal.remove());
+    // Cleanup function
+    const cleanup = () => {
+        URL.revokeObjectURL(url);
+        modal.remove();
+    };
 
-    document.getElementById('modal-download-btn').addEventListener('click', () => {
-        downloadCSV(csvContent);
-    });
+    // Event Listeners
+    document.getElementById('close-export-modal').addEventListener('click', cleanup);
 
     document.getElementById('modal-copy-btn').addEventListener('click', () => {
         const textarea = document.getElementById('csv-textarea');
@@ -525,7 +537,7 @@ function showExportModal() {
     // Close on background click
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {
-            modal.remove();
+            cleanup();
         }
     });
 }
