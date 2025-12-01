@@ -2,7 +2,7 @@ class WineRater {
     constructor(setId) {
         this.setId = setId;
         this.wines = [];
-        this.minWines = 10;
+        this.minWines = 2;
         this.maxWines = 20;
         this.targetScore = 10.0;
 
@@ -400,12 +400,16 @@ class WineRater {
                             <h3>🍷 ワインの追加・削除</h3>
                             <ul>
                                 <li><strong>ワインを追加</strong> ボタンで最大20個まで追加可能</li>
-                                <li>ゴミ箱アイコンで削除（最低10個は残ります）</li>
+                                <li>ゴミ箱アイコンで削除（最低2個は残ります）</li>
                             </ul>
                         </section>
                         <section>
                             <h3>✨ 自動割り振り機能</h3>
                             <p>すべてのワイン名を入力すると、自動的に合計10点になるよう均等に点数が割り振られます。</p>
+                        </section>
+                        <section>
+                            <h3>⚖️ 均等割り振りボタン</h3>
+                            <p>各セットのヘッダーにある<strong>三本線アイコン</strong>をクリックすると、手動で点数を変更した後でも、強制的に均等割り振り（合計10点）にリセットできます。</p>
                         </section>
                         <section>
                             <h3>📋 ワイン名のコピー</h3>
