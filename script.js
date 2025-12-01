@@ -557,18 +557,30 @@ function loadFromLocalStorage() {
 }
 
 function clearLocalStorage() {
+    // Prevent multiple simultaneous calls
+    if (clearLocalStorage.isProcessing) {
+        return;
+    }
+
+    clearLocalStorage.isProcessing = true;
+
     const confirmed = confirm('すべてのデータをリセットします。よろしいですか？\n\nこの操作は取り消せません。');
 
     if (confirmed) {
         try {
             localStorage.removeItem(STORAGE_KEY);
 
-            // Reload the page to reset everything
-            window.location.reload();
+            // Use setTimeout to ensure confirm dialog closes before reload
+            setTimeout(() => {
+                window.location.reload();
+            }, 100);
         } catch (error) {
             console.error('Failed to clear localStorage:', error);
             alert('データのリセットに失敗しました。');
+            clearLocalStorage.isProcessing = false;
         }
+    } else {
+        clearLocalStorage.isProcessing = false;
     }
 }
 
@@ -758,4 +770,9 @@ function showExportModal() {
 }
 
 document.getElementById('export-btn').addEventListener('click', showExportModal);
-document.getElementById('reset-btn').addEventListener('click', clearLocalStorage);
+
+// Reset button with proper event handling
+const resetBtn = document.getElementById('reset-btn');
+if (resetBtn) {
+    resetBtn.addEventListener('click', clearLocalStorage, { once: false });
+}
