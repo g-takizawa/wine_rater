@@ -42,3 +42,50 @@
 ## 📄 ライセンス
 
 This project is open source and available under the [MIT License](LICENSE).
+
+---
+
+# 🍷 10-Point Tasting Calculator (Wine Rater)
+
+A web application designed to streamline wine tasting evaluations.
+It supports the 10-point scoring system and allows for parallel evaluation of multiple flights (sets).
+
+## ✨ Key Features
+
+### 📝 Evaluation & Scoring
+- **Auto-Distribution**: Automatically distributes scores to sum up to 10 points when wine names are entered.
+- **Manual Adjustment**: Fine-tune scores in 0.25 increments using `+` / `-` buttons.
+- **Even Distribution Reset**: Reset scores to an even distribution (totaling 10 points) with a single click, even after manual adjustments.
+- **4 Flights**: Manage up to 4 sets (flights) simultaneously without switching tabs.
+
+### 💾 Data Management
+- **Auto-Save**: Input is instantly saved to the browser's local storage. Data persists even after reloading.
+- **Data Restoration**: Previous work state is automatically restored when reopening the page.
+- **Reset Function**: Feature to clear all data and return to the initial state (with a confirmation dialog to prevent accidental deletion).
+
+### 📤 Export & Share
+- **CSV Download**: Download evaluation results as a CSV file.
+- **Clipboard Copy**: Copy data in a format (TSV) that can be directly pasted into Excel or Google Sheets.
+- **Wine Name Copy**: Copy wine names from other sets to save typing effort.
+
+### 📱 Mobile Friendly
+- Responsive design that works well on smartphones.
+- Optimized input forms (smooth navigation with the "Next" button).
+
+## 🚀 How to Use
+
+1. **Enter Wine Names**: Input the names of the wines you are evaluating.
+2. **Adjust Scores**: Adjust scores as needed to ensure the total is 10.00 points (the total turns green when correct).
+3. **Use Sets**: If you have multiple flights, scroll horizontally to use Set 2, Set 3, etc.
+4. **Save & Export**: Work is auto-saved. When finished, use "Export Results" to save your data.
+
+## 🛠 Tech Stack
+
+- HTML5
+- CSS3 (Vanilla CSS, Responsive Grid/Flexbox)
+- JavaScript (Vanilla JS, LocalStorage API)
+- Google Fonts (Inter, Outfit)
+
+## 📄 License
+
+This project is open source and available under the [MIT License](LICENSE).
