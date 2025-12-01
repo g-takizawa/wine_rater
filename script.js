@@ -49,7 +49,9 @@ class WineRater {
     }
 
     removeWine(id) {
-        if (this.wines.length <= this.minWines) return;
+        if (this.wines.length <= this.minWines) {
+            return;
+        }
 
         const index = this.wines.findIndex(w => w.id === id);
         if (index !== -1) {
@@ -58,11 +60,16 @@ class WineRater {
             el.style.transform = 'translateY(10px)';
 
             setTimeout(() => {
-                this.wines.splice(index, 1);
-                el.remove();
-                this.updateIndices();
-                this.checkAndDistributeScores(); // Re-distribute if possible
-                this.updateUI();
+                // Re-calculate index to ensure we remove the correct item
+                // even if other items were removed during the animation
+                const currentIndex = this.wines.findIndex(w => w.id === id);
+                if (currentIndex !== -1) {
+                    this.wines.splice(currentIndex, 1);
+                    el.remove();
+                    this.updateIndices();
+                    this.checkAndDistributeScores();
+                    this.updateUI();
+                }
             }, 200);
         }
     }
@@ -253,6 +260,12 @@ class WineRater {
     }
 
     copyWineNamesFrom(sourceRater) {
+        // Ensure we have enough slots
+        while (this.wines.length < sourceRater.wines.length) {
+            if (this.wines.length >= this.maxWines) break;
+            this.addWine(false);
+        }
+
         sourceRater.wines.forEach((sourceWine, index) => {
             if (this.wines[index]) {
                 this.wines[index].name = sourceWine.name;
@@ -393,7 +406,7 @@ const appInstances = {
 // Keep backwards compatibility
 const app = appInstances[1];
 
-function exportToCSV() {
+function generateCSVContent() {
     const rows = [['セット名', 'ワイン名', '点数']];
 
     Object.values(appInstances).forEach(rater => {
@@ -407,26 +420,114 @@ function exportToCSV() {
         });
     });
 
-    const csvContent = rows.map(e => e.join(",")).join("\n");
-    const bom = new Uint8Array([0xEF, 0xBB, 0xBF]); // UTF-8 BOM
-    const blob = new Blob([bom, csvContent], { type: 'text/csv;charset=utf-8;' });
+    return rows.map(e => e.join(",")).join("\n");
+}
 
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-
+function downloadCSV(csvContent) {
     // Generate filename with timestamp
     const now = new Date();
     const timestamp = now.toISOString().replace(/[-:T.]/g, '').slice(0, 14);
-    link.setAttribute("download", `wine_ratings_${timestamp}.csv`);
-    link.style.visibility = 'hidden';
+    const filename = `wine_ratings_${timestamp}.csv`;
 
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // Try Blob method first (better for large files)
+    try {
+        const bom = new Uint8Array([0xEF, 0xBB, 0xBF]); // UTF-8 BOM
+        const blob = new Blob([bom, csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
 
-    // Clean up the URL object
-    setTimeout(() => URL.revokeObjectURL(url), 100);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", filename);
+        link.style.visibility = 'hidden';
+
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        setTimeout(() => URL.revokeObjectURL(url), 100);
+    } catch (e) {
+        console.warn('Blob download failed, trying data URI fallback...', e);
+        // Fallback to data URI (better for file:// protocol in some browsers)
+        const encodedUri = encodeURI("data:text/csv;charset=utf-8,\uFEFF" + csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", filename);
+        link.style.visibility = 'hidden';
+
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
 }
 
-document.getElementById('export-btn').addEventListener('click', exportToCSV);
+function showExportModal() {
+    const csvContent = generateCSVContent();
+
+    const modal = document.createElement('div');
+    modal.className = 'help-modal'; // Reuse help modal styling
+    modal.id = 'export-modal';
+
+    modal.innerHTML = `
+        <div class="help-content" style="max-width: 600px;">
+            <div class="help-header">
+                <h2>CSV出力</h2>
+                <button class="btn-close" id="close-export-modal">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="help-body">
+                <p>以下のボタンからダウンロード、またはテキストをコピーしてください。</p>
+                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                    <button id="modal-download-btn" class="btn-primary" style="flex: 1;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 5px;">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        CSVをダウンロード
+                    </button>
+                    <button id="modal-copy-btn" class="btn-secondary" style="flex: 1; background: white; border: 1px solid var(--primary); color: var(--primary);">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 5px;">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                        クリップボードにコピー
+                    </button>
+                </div>
+                <textarea id="csv-textarea" style="width: 100%; height: 200px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; font-size: 12px;" readonly>${csvContent}</textarea>
+                <p id="copy-status" style="margin-top: 5px; font-size: 0.9em; color: var(--success); height: 1.2em;"></p>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Event Listeners
+    document.getElementById('close-export-modal').addEventListener('click', () => modal.remove());
+
+    document.getElementById('modal-download-btn').addEventListener('click', () => {
+        downloadCSV(csvContent);
+    });
+
+    document.getElementById('modal-copy-btn').addEventListener('click', () => {
+        const textarea = document.getElementById('csv-textarea');
+        textarea.select();
+        document.execCommand('copy');
+
+        const status = document.getElementById('copy-status');
+        status.textContent = 'コピーしました！';
+        setTimeout(() => status.textContent = '', 2000);
+    });
+
+    // Close on background click
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    });
+}
+
+document.getElementById('export-btn').addEventListener('click', showExportModal);
