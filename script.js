@@ -27,6 +27,12 @@ class WineRater {
 
         this.addBtn.addEventListener('click', () => this.addWine());
         this.copyBtn.addEventListener('click', () => this.showCopyDialog());
+
+        const distributeBtn = document.getElementById(`distribute-btn-${this.setId}`);
+        if (distributeBtn) {
+            distributeBtn.addEventListener('click', () => this.distributeScoresEvenly());
+        }
+
         if (this.helpBtn) {
             this.helpBtn.addEventListener('click', () => this.showHelp());
         }
@@ -140,6 +146,27 @@ class WineRater {
         // Update displays
         this.wines.forEach(w => this.updateWineScoreDisplay(w));
         this.updateUI();
+    }
+
+    distributeScoresEvenly() {
+        // Reset manual score flag to allow auto-distribution
+        this.isManualScore = false;
+
+        // Trigger distribution
+        this.checkAndDistributeScores();
+
+        // Save changes
+        saveToLocalStorage();
+
+        // Visual feedback (optional but nice)
+        const btn = document.getElementById(`distribute-btn-${this.setId}`);
+        if (btn) {
+            const originalColor = btn.style.color;
+            btn.style.color = 'var(--success)';
+            setTimeout(() => {
+                btn.style.color = originalColor;
+            }, 500);
+        }
     }
 
     updateWineScoreDisplay(wine) {

@@ -136,6 +136,28 @@ header {
     text-transform: uppercase;
 }
 
+.btn-icon-header {
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid var(--glass-border);
+    color: var(--primary);
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.btn-icon-header:hover {
+    background: #fff;
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
 .btn-help,
 .btn-copy {
     background: rgba(255, 255, 255, 0.8);
