@@ -334,12 +334,18 @@ class WineRater {
     }
 
     showHelp() {
+        // Remove any existing help modal first
+        const existingModal = document.getElementById('help-modal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
         const helpContent = `
             <div class="help-modal" id="help-modal">
                 <div class="help-content">
                     <div class="help-header">
                         <h2>使い方</h2>
-                        <button class="btn-close" onclick="document.getElementById('help-modal').remove()">
+                        <button class="btn-close" id="help-close-btn">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="18" y1="6" x2="6" y2="18"></line>
                                 <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -371,6 +377,14 @@ class WineRater {
                             <p>各セットのヘッダーにある<strong>コピーボタン</strong>をクリックすると、他のセットからワイン名をコピーできます。点数はコピーされません。</p>
                         </section>
                         <section>
+                            <h3>📤 データのエクスポート</h3>
+                            <p><strong>結果をCSV出力</strong>ボタンから2つの方法でデータを取得できます：</p>
+                            <ul>
+                                <li><strong>CSVをダウンロード</strong>: ファイルとして保存（Safari、Firefox、Edgeなどで推奨）</li>
+                                <li><strong>クリップボードにコピー</strong>: タブ区切り形式でコピー。Excelやスプレッドシートに貼り付けると自動的に列に分かれます（<strong>Chrome推奨</strong>）</li>
+                            </ul>
+                        </section>
+                        <section>
                             <h3>💡 ヒント</h3>
                             <ul>
                                 <li>合計が10.00点ピッタリになると緑色で表示されます</li>
@@ -385,8 +399,17 @@ class WineRater {
         `;
         document.body.insertAdjacentHTML('beforeend', helpContent);
 
-        // Close on background click
+        // Get the modal and close button
         const modal = document.getElementById('help-modal');
+        const closeBtn = document.getElementById('help-close-btn');
+
+        // Close button handler
+        closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            modal.remove();
+        });
+
+        // Close on background click
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
                 modal.remove();
