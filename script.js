@@ -6,6 +6,8 @@ class WineRater {
         this.maxWines = 20;
         this.targetScore = 10.0;
 
+        this.isManualScore = false;
+
         this.wineListEl = document.getElementById(`wine-list-${setId}`);
         this.totalScoreEl = document.getElementById(`total-score-${setId}`);
         this.statusMessageEl = document.getElementById(`status-message-${setId}`);
@@ -59,6 +61,7 @@ class WineRater {
                 this.wines.splice(index, 1);
                 el.remove();
                 this.updateIndices();
+                this.checkAndDistributeScores(); // Re-distribute if possible
                 this.updateUI();
             }, 200);
         }
@@ -67,6 +70,7 @@ class WineRater {
     updateScore(id, change) {
         const wine = this.wines.find(w => w.id === id);
         if (wine) {
+            this.isManualScore = true; // Mark as manually modified
             const newScore = Math.max(0, wine.score + change);
             wine.score = newScore;
 
@@ -87,35 +91,52 @@ class WineRater {
     }
 
     checkAndDistributeScores() {
-        const allNamesEntered = this.wines.every(w => w.name && w.name.trim() !== '');
-        if (!allNamesEntered) return;
+        // If scores have been manually adjusted, do not auto-distribute
+        if (this.isManualScore) return;
 
-        if (this.calculateTotal() > 0) return;
+        // Find wines that have a name entered
+        const activeWines = this.wines.filter(w => w.name && w.name.trim() !== '');
+        const count = activeWines.length;
 
-        const count = this.wines.length;
-        if (count === 0) return;
+        if (count === 0) {
+            // Reset all to 0 if no names
+            this.wines.forEach(w => {
+                w.score = 0.0;
+                this.updateWineScoreDisplay(w);
+            });
+            this.updateUI();
+            return;
+        }
 
+        // Distribute 10 points among active wines
         const baseScore = Math.floor((this.targetScore / count) / 0.25) * 0.25;
-
         let currentTotal = baseScore * count;
         let remainder = this.targetScore - currentTotal;
 
-        this.wines.forEach(wine => {
+        // Reset all scores first
+        this.wines.forEach(w => w.score = 0.0);
+
+        // Assign scores to active wines
+        activeWines.forEach(wine => {
             let score = baseScore;
             if (remainder > 0.01) {
                 score += 0.25;
                 remainder -= 0.25;
             }
             wine.score = score;
-
-            const wineItem = document.getElementById(`wine-${this.setId}-${wine.id}`);
-            if (wineItem) {
-                const scoreDisplay = wineItem.querySelector('.score-display');
-                if (scoreDisplay) scoreDisplay.textContent = score.toFixed(2);
-            }
         });
 
+        // Update displays
+        this.wines.forEach(w => this.updateWineScoreDisplay(w));
         this.updateUI();
+    }
+
+    updateWineScoreDisplay(wine) {
+        const wineItem = document.getElementById(`wine-${this.setId}-${wine.id}`);
+        if (wineItem) {
+            const scoreDisplay = wineItem.querySelector('.score-display');
+            if (scoreDisplay) scoreDisplay.textContent = wine.score.toFixed(2);
+        }
     }
 
     calculateTotal() {
@@ -239,7 +260,11 @@ class WineRater {
                 const wineItem = document.getElementById(`wine-${this.setId}-${this.wines[index].id}`);
                 if (wineItem) {
                     const input = wineItem.querySelector('.wine-input');
-                    if (input) input.value = sourceWine.name;
+                    if (input) {
+                        input.value = sourceWine.name;
+                        // Dispatch input event to ensure UI updates and listeners trigger
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
                 }
             }
         });
@@ -247,7 +272,7 @@ class WineRater {
     }
 
     showCopyDialog() {
-        const otherSets = [1, 2, 3].filter(id => id !== this.setId);
+        const otherSets = [1, 2, 3, 4].filter(id => id !== this.setId);
         const titles = otherSets.map(id => {
             const titleInput = document.getElementById(`title-${id}`);
             return titleInput ? titleInput.value : `セット${id}`;
@@ -259,8 +284,9 @@ class WineRater {
             <div class="copy-dialog-content">
                 <h3>コピー元を選択</h3>
                 <div class="copy-dialog-buttons">
-                    <button class="copy-dialog-btn" data-source="${otherSets[0]}">${titles[0]}</button>
-                    <button class="copy-dialog-btn" data-source="${otherSets[1]}">${titles[1]}</button>
+                    ${otherSets.map((id, index) => `
+                        <button class="copy-dialog-btn" data-source="${id}">${titles[index]}</button>
+                    `).join('')}
                     <button class="copy-dialog-btn cancel">キャンセル</button>
                 </div>
             </div>
@@ -269,7 +295,7 @@ class WineRater {
         document.body.appendChild(dialog);
 
         // Add click handlers
-        const buttons = dialog.querySelectorAll('.copy-dialog-btn');
+        const buttons = dialog.querySelectorAll('.copy-dialog-btn:not(.cancel)');
         buttons.forEach(btn => {
             btn.addEventListener('click', () => {
                 const sourceId = btn.dataset.source;
@@ -282,6 +308,9 @@ class WineRater {
                 dialog.remove();
             });
         });
+
+        // Cancel button
+        dialog.querySelector('.cancel').addEventListener('click', () => dialog.remove());
 
         // Close on background click
         dialog.addEventListener('click', (e) => {
@@ -353,12 +382,51 @@ class WineRater {
     }
 }
 
-// Initialize 3 instances
+// Initialize 4 instances
 const appInstances = {
     1: new WineRater(1),
     2: new WineRater(2),
-    3: new WineRater(3)
+    3: new WineRater(3),
+    4: new WineRater(4)
 };
 
 // Keep backwards compatibility
 const app = appInstances[1];
+
+function exportToCSV() {
+    const rows = [['セット名', 'ワイン名', '点数']];
+
+    Object.values(appInstances).forEach(rater => {
+        const titleInput = document.getElementById(`title-${rater.setId}`);
+        const setName = titleInput ? titleInput.value : `セット${rater.setId}`;
+
+        rater.wines.forEach(wine => {
+            // Escape quotes in name
+            const name = (wine.name || '').replace(/"/g, '""');
+            rows.push([`"${setName}"`, `"${name}"`, wine.score.toFixed(2)]);
+        });
+    });
+
+    const csvContent = rows.map(e => e.join(",")).join("\n");
+    const bom = new Uint8Array([0xEF, 0xBB, 0xBF]); // UTF-8 BOM
+    const blob = new Blob([bom, csvContent], { type: 'text/csv;charset=utf-8;' });
+
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+
+    // Generate filename with timestamp
+    const now = new Date();
+    const timestamp = now.toISOString().replace(/[-:T.]/g, '').slice(0, 14);
+    link.setAttribute("download", `wine_ratings_${timestamp}.csv`);
+    link.style.visibility = 'hidden';
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Clean up the URL object
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+}
+
+document.getElementById('export-btn').addEventListener('click', exportToCSV);
