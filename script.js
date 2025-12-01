@@ -511,8 +511,41 @@ function showExportModal() {
     });
 
     // Use downloadCSV for robust downloading with fallback
-    document.getElementById('modal-download-btn').addEventListener('click', () => {
-        downloadCSV(csvContent);
+    document.getElementById('modal-download-btn').addEventListener('click', (e) => {
+        // Generate filename with timestamp
+        const now = new Date();
+        const timestamp = now.toISOString().replace(/[-:T.]/g, '').slice(0, 14);
+        const filename = `wine_ratings_${timestamp}.csv`;
+
+        // Create download immediately in click handler to avoid Chrome blocking
+        try {
+            const bom = new Uint8Array([0xEF, 0xBB, 0xBF]); // UTF-8 BOM
+            const blob = new Blob([bom, csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", filename);
+            link.style.visibility = 'hidden';
+
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            setTimeout(() => URL.revokeObjectURL(url), 100);
+        } catch (error) {
+            console.warn('Blob download failed, trying data URI fallback...', error);
+            // Fallback to data URI
+            const encodedUri = encodeURI("data:text/csv;charset=utf-8,\uFEFF" + csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", filename);
+            link.style.visibility = 'hidden';
+
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
     });
 
     document.getElementById('modal-copy-btn').addEventListener('click', () => {
