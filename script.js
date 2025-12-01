@@ -203,7 +203,8 @@ class WineRater {
                     class="wine-input"
                     data-wine-id="${wine.id}"
                     placeholder="ワイン名"
-                    value="${wine.name}">
+                    value="${wine.name}"
+                    enterkeyhint="next">
             </div>
             <div class="score-control">
                 <button class="btn-icon" data-action="decrease" data-wine-id="${wine.id}">
