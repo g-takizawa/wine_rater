@@ -556,31 +556,70 @@ function loadFromLocalStorage() {
     }
 }
 
-function clearLocalStorage() {
-    // Prevent multiple simultaneous calls
-    if (clearLocalStorage.isProcessing) {
-        return;
+function showResetModal() {
+    // Remove any existing modal
+    const existingModal = document.getElementById('reset-modal');
+    if (existingModal) {
+        existingModal.remove();
     }
 
-    clearLocalStorage.isProcessing = true;
+    const modalContent = `
+        <div class="copy-dialog" id="reset-modal">
+            <div class="copy-dialog-content">
+                <h3 style="color: var(--error);">⚠️ データの削除</h3>
+                <p style="margin-bottom: 20px; line-height: 1.5;">
+                    すべての入力データと設定を削除して初期状態に戻します。<br>
+                    <strong>この操作は取り消せません。</strong><br>
+                    よろしいですか？
+                </p>
+                <div class="copy-dialog-buttons">
+                    <button class="copy-dialog-btn" id="confirm-reset-btn" style="color: var(--error); border-color: var(--error);">
+                        はい、すべて削除します
+                    </button>
+                    <button class="copy-dialog-btn cancel" id="cancel-reset-btn">
+                        キャンセル
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalContent);
 
-    const confirmed = confirm('すべてのデータをリセットします。よろしいですか？\n\nこの操作は取り消せません。');
+    const modal = document.getElementById('reset-modal');
 
-    if (confirmed) {
-        try {
-            localStorage.removeItem(STORAGE_KEY);
+    // Confirm Reset
+    document.getElementById('confirm-reset-btn').addEventListener('click', () => {
+        performReset();
+    });
 
-            // Use setTimeout to ensure confirm dialog closes before reload
-            setTimeout(() => {
-                window.location.reload();
-            }, 100);
-        } catch (error) {
-            console.error('Failed to clear localStorage:', error);
-            alert('データのリセットに失敗しました。');
-            clearLocalStorage.isProcessing = false;
+    // Cancel
+    document.getElementById('cancel-reset-btn').addEventListener('click', () => {
+        modal.remove();
+    });
+
+    // Close on background click
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.remove();
         }
-    } else {
-        clearLocalStorage.isProcessing = false;
+    });
+}
+
+function performReset() {
+    try {
+        localStorage.removeItem(STORAGE_KEY);
+
+        // Show feedback
+        const btn = document.getElementById('confirm-reset-btn');
+        btn.textContent = '削除中...';
+        btn.disabled = true;
+
+        setTimeout(() => {
+            window.location.reload();
+        }, 500);
+    } catch (error) {
+        console.error('Failed to clear localStorage:', error);
+        alert('データのリセットに失敗しました。');
     }
 }
 
@@ -774,5 +813,5 @@ document.getElementById('export-btn').addEventListener('click', showExportModal)
 // Reset button with proper event handling
 const resetBtn = document.getElementById('reset-btn');
 if (resetBtn) {
-    resetBtn.addEventListener('click', clearLocalStorage, { once: false });
+    resetBtn.addEventListener('click', showResetModal);
 }
