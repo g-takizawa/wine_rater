@@ -239,6 +239,9 @@ class WineRater {
 
         // Add Enter key listener to move to next input
         input.addEventListener('keydown', (e) => {
+            // Ignore if IME composition is active
+            if (e.isComposing) return;
+
             if (e.key === 'Enter') {
                 e.preventDefault();
                 e.stopPropagation();
