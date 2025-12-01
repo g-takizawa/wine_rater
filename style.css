@@ -153,11 +153,27 @@ header {
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
+/* Help button in global controls with text */
+.global-controls .btn-help {
+    width: auto;
+    padding: 8px 16px;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.9);
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
 .btn-help:hover,
 .btn-copy:hover {
     background: #fff;
     transform: scale(1.05);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.global-controls .btn-help:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(128, 0, 32, 0.15);
 }
 
 .help-modal {
