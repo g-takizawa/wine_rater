@@ -469,7 +469,7 @@ input[type="text"].wine-input::placeholder {
 .score-display {
     font-family: var(--font-heading);
     font-weight: 600;
-    font-size: 1.0rem;
+    font-size: 1.2rem;
     min-width: 32px;
     text-align: center;
     color: var(--primary);
