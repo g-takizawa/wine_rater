@@ -416,7 +416,7 @@ input[type="text"].wine-input {
     border-bottom: 1px solid var(--glass-border);
     color: var(--text-main);
     font-family: var(--font-body);
-    font-size: 0.8rem;
+    font-size: 1.1rem;
     padding: 4px 0;
     transition: border-color 0.2s;
 }
