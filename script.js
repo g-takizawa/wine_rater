@@ -280,6 +280,19 @@ class WineRater {
                         nextInput.focus();
                         nextInput.setSelectionRange(nextInput.value.length, nextInput.value.length);
                     }, 0);
+                } else {
+                    // Last item, add new wine if not at max
+                    if (this.wines.length < this.maxWines) {
+                        this.addWine();
+                        // Focus on the new input
+                        setTimeout(() => {
+                            const newAllInputs = Array.from(this.wineListEl.querySelectorAll('.wine-input'));
+                            const lastInput = newAllInputs[newAllInputs.length - 1];
+                            if (lastInput) {
+                                lastInput.focus();
+                            }
+                        }, 50);
+                    }
                 }
             }
         });
