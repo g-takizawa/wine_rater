@@ -7,6 +7,7 @@
 
 ### 📝 評価・採点
 - **自動割り振り**: ワイン名を入力すると、合計が10点になるように自動的に点数を割り振ります。
+- **一括入力**: ワイン名のリストをコピー＆ペーストするだけで、自動的に複数の入力欄に振り分けられます。
 - **手動調整**: `+` / `-` ボタンで0.25点刻みの微調整が可能です。
 - **均等割り振りリセット**: 手動調整後でも、ボタン一つで均等割り振り（合計10点）に戻せます。
 - **4つの投票部門**: 最大4つのセット（投票部門）をタブ切り替えなしで同時に管理できます。
@@ -54,6 +55,7 @@ It supports the 10-point scoring system and allows for parallel evaluation of mu
 
 ### 📝 Evaluation & Scoring
 - **Auto-Distribution**: Automatically distributes scores to sum up to 10 points when wine names are entered.
+- **Bulk Entry**: Simply copy and paste a list of wine names to automatically populate multiple input fields.
 - **Manual Adjustment**: Fine-tune scores in 0.25 increments using `+` / `-` buttons.
 - **Even Distribution Reset**: Reset scores to an even distribution (totaling 10 points) with a single click, even after manual adjustments.
 - **4 Voting Departments**: Manage up to 4 sets (Voting Departments) simultaneously without switching tabs.

@@ -461,6 +461,7 @@ class WineRater {
                             <ul>
                                 <li><strong>ワインを追加</strong> ボタンで最大20個まで追加可能</li>
                                 <li>ゴミ箱アイコンで削除（最低2個は残ります）</li>
+                                <li><strong>リストの一括貼り付け</strong>: ワイン名のリストをコピーして、入力欄に貼り付けると、自動的に複数の欄に入力されます</li>
                             </ul>
                         </section>
                         <section>
