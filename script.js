@@ -264,6 +264,53 @@ class WineRater {
             this.updateName(wine.id, e.target.value);
         });
 
+        // Add Paste listener for bulk entry
+        input.addEventListener('paste', (e) => {
+            const pasteData = (e.clipboardData || window.clipboardData).getData('text');
+            if (pasteData.includes('\n')) {
+                e.preventDefault();
+                const lines = pasteData.split(/\r?\n/).map(line => line.trim()).filter(line => line !== '');
+
+                if (lines.length > 0) {
+                    // Set current input
+                    input.value = lines[0];
+                    this.updateName(wine.id, lines[0]);
+
+                    // Process remaining lines
+                    let currentWineIndex = this.wines.findIndex(w => w.id === wine.id);
+
+                    for (let i = 1; i < lines.length; i++) {
+                        // Check if we need to add a new wine
+                        if (currentWineIndex + i >= this.wines.length) {
+                            if (this.wines.length < this.maxWines) {
+                                this.addWine(false);
+                            } else {
+                                break; // Reached max limit
+                            }
+                        }
+
+                        // Update the next wine
+                        const nextWine = this.wines[currentWineIndex + i];
+                        if (nextWine) {
+                            nextWine.name = lines[i];
+
+                            // Update DOM
+                            const nextWineItem = document.getElementById(`wine-${this.setId}-${nextWine.id}`);
+                            if (nextWineItem) {
+                                const nextInput = nextWineItem.querySelector('.wine-input');
+                                if (nextInput) {
+                                    nextInput.value = lines[i];
+                                }
+                            }
+                        }
+                    }
+
+                    this.checkAndDistributeScores();
+                    saveToLocalStorage();
+                }
+            }
+        });
+
         // Add Enter key listener to move to next input
         input.addEventListener('keydown', (e) => {
             // Ignore if IME composition is active
