@@ -689,3 +689,24 @@ input[type="text"].wine-input::placeholder {
         order: 3;
     }
 }
+
+/* Version Display */
+.version-display {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    opacity: 0.5;
+    pointer-events: none;
+    z-index: 1000;
+    font-family: 'Inter', sans-serif;
+}
+
+@media (max-width: 768px) {
+    .version-display {
+        bottom: 5px;
+        right: 5px;
+        font-size: 0.7rem;
+    }
+}
