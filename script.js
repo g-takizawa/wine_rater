@@ -354,14 +354,20 @@ class WineRater {
         removeBtn.addEventListener('click', () => this.removeWine(wine.id));
     }
 
-    copyWineNamesFrom(sourceRater) {
+    copyWineNamesFrom(sourceRater, selectedIndices = null) {
+        // Filter wines if indices are provided
+        let winesToCopy = sourceRater.wines;
+        if (selectedIndices) {
+            winesToCopy = selectedIndices.map(index => sourceRater.wines[index]).filter(w => w);
+        }
+
         // Ensure we have enough slots
-        while (this.wines.length < sourceRater.wines.length) {
+        while (this.wines.length < winesToCopy.length) {
             if (this.wines.length >= this.maxWines) break;
             this.addWine(false);
         }
 
-        sourceRater.wines.forEach((sourceWine, index) => {
+        winesToCopy.forEach((sourceWine, index) => {
             if (this.wines[index]) {
                 this.wines[index].name = sourceWine.name;
                 // Update DOM
@@ -389,7 +395,7 @@ class WineRater {
         const dialog = document.createElement('div');
         dialog.className = 'copy-dialog';
         dialog.innerHTML = `
-            <div class="copy-dialog-content">
+            <div class="copy-dialog-content" id="copy-step-1">
                 <h3>コピー元を選択</h3>
                 <div class="copy-dialog-buttons">
                     ${otherSets.map((id, index) => `
@@ -402,18 +408,14 @@ class WineRater {
 
         document.body.appendChild(dialog);
 
-        // Add click handlers
+        // Step 1: Source Selection
         const buttons = dialog.querySelectorAll('.copy-dialog-btn:not(.cancel)');
         buttons.forEach(btn => {
             btn.addEventListener('click', () => {
                 const sourceId = btn.dataset.source;
                 if (sourceId) {
-                    const sourceRater = appInstances[sourceId];
-                    if (sourceRater) {
-                        this.copyWineNamesFrom(sourceRater);
-                    }
+                    this.showWineSelectionStep(dialog, sourceId);
                 }
-                dialog.remove();
             });
         });
 
@@ -426,6 +428,64 @@ class WineRater {
                 dialog.remove();
             }
         });
+    }
+
+    showWineSelectionStep(dialog, sourceId) {
+        const sourceRater = appInstances[sourceId];
+        if (!sourceRater) return;
+
+        const content = dialog.querySelector('.copy-dialog-content');
+
+        // Generate wine list HTML
+        const winesHtml = sourceRater.wines.map((wine, index) => `
+            <div class="wine-select-item">
+                <label>
+                    <input type="checkbox" class="wine-select-checkbox" value="${index}" checked>
+                    <span class="wine-select-name">${wine.name || '(名称未設定)'}</span>
+                </label>
+            </div>
+        `).join('');
+
+        content.innerHTML = `
+            <h3>ワインを選択</h3>
+            <div class="wine-select-list" style="max-height: 300px; overflow-y: auto; margin-bottom: 20px; text-align: left;">
+                <div style="margin-bottom: 10px;">
+                    <button id="select-all-btn" style="font-size: 0.8em; padding: 2px 8px;">すべて選択</button>
+                    <button id="deselect-all-btn" style="font-size: 0.8em; padding: 2px 8px;">すべて解除</button>
+                </div>
+                ${winesHtml}
+            </div>
+            <div class="copy-dialog-buttons">
+                <button class="copy-dialog-btn btn-primary" id="confirm-copy-btn">コピー実行</button>
+                <button class="copy-dialog-btn cancel">キャンセル</button>
+            </div>
+        `;
+
+        // Helper functions
+        const checkboxes = content.querySelectorAll('.wine-select-checkbox');
+
+        content.querySelector('#select-all-btn').addEventListener('click', () => {
+            checkboxes.forEach(cb => cb.checked = true);
+        });
+
+        content.querySelector('#deselect-all-btn').addEventListener('click', () => {
+            checkboxes.forEach(cb => cb.checked = false);
+        });
+
+        // Confirm Copy
+        content.querySelector('#confirm-copy-btn').addEventListener('click', () => {
+            const selectedIndices = Array.from(checkboxes)
+                .filter(cb => cb.checked)
+                .map(cb => parseInt(cb.value));
+
+            if (selectedIndices.length > 0) {
+                this.copyWineNamesFrom(sourceRater, selectedIndices);
+            }
+            dialog.remove();
+        });
+
+        // Cancel
+        content.querySelector('.cancel').addEventListener('click', () => dialog.remove());
     }
 
     showHelp() {
