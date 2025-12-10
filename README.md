@@ -20,7 +20,7 @@
 ### 📤 エクスポート・共有
 - **CSVダウンロード**: 評価結果をCSVファイルとしてダウンロードできます。
 - **クリップボードコピー**: Excelやスプレッドシートに直接貼り付けられる形式（TSV）でコピーできます。
-- **ワイン名コピー**: 他のセットからワイン名をコピーして、入力の手間を省けます。
+- **ワイン名コピー**: 他のセットからワイン名をコピーして、入力の手間を省けます（特定のワインだけ選んでコピーも可能）。
 
 ### 📱 モバイル対応
 - スマートフォンでも使いやすいレスポンシブデザイン。
@@ -68,7 +68,7 @@ It supports the 10-point scoring system and allows for parallel evaluation of mu
 ### 📤 Export & Share
 - **CSV Download**: Download evaluation results as a CSV file.
 - **Clipboard Copy**: Copy data in a format (TSV) that can be directly pasted into Excel or Google Sheets.
-- **Wine Name Copy**: Copy wine names from other sets to save typing effort.
+- **Wine Name Copy**: Copy wine names from other sets to save typing effort (selective copying available).
 
 ### 📱 Mobile Friendly
 - Responsive design that works well on smartphones.
