@@ -563,6 +563,7 @@ class WineRater {
                             <ul>
                                 <li>外部サーバーへ送信されることはありません</li>
                                 <li>アプリ開発者がデータを閲覧することはできません</li>
+                                <li>プライベートブラウズやサイトデータの削除でデータは消えます。<strong>バックアップ</strong>ボタンからファイルに保存しておくと、あとで読み込んで元に戻せます</li>
                             </ul>
                         </section>
                     </div>
@@ -641,30 +642,34 @@ function generateCSVContent() {
 // LocalStorage Persistence
 // ========================================
 
+// Collect the current state of all sets (used for localStorage and backup files)
+function collectAppData() {
+    const data = {
+        sets: {},
+        lastSaved: new Date().toISOString()
+    };
+
+    Object.values(appInstances).forEach(rater => {
+        const titleInput = document.getElementById(`title-${rater.setId}`);
+        const setTitle = titleInput ? titleInput.value : `セット${rater.setId}`;
+
+        data.sets[rater.setId] = {
+            title: setTitle,
+            isManualScore: rater.isManualScore,
+            wines: rater.wines.map(wine => ({
+                name: wine.name,
+                score: wine.score
+            }))
+        };
+    });
+
+    return data;
+}
+
 function saveToLocalStorage() {
     if (!isAppReady) return;
     try {
-        const data = {
-            sets: {},
-            lastSaved: new Date().toISOString()
-        };
-
-        // Save each set's data
-        Object.values(appInstances).forEach(rater => {
-            const titleInput = document.getElementById(`title-${rater.setId}`);
-            const setTitle = titleInput ? titleInput.value : `セット${rater.setId}`;
-
-            data.sets[rater.setId] = {
-                title: setTitle,
-                isManualScore: rater.isManualScore,
-                wines: rater.wines.map(wine => ({
-                    name: wine.name,
-                    score: wine.score
-                }))
-            };
-        });
-
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(collectAppData()));
     } catch (error) {
         console.error('Failed to save to localStorage:', error);
     }
@@ -678,55 +683,59 @@ function loadFromLocalStorage() {
         const data = JSON.parse(savedData);
         if (!data.sets) return false;
 
-        // Restore each set's data
-        Object.keys(data.sets).forEach(setId => {
-            const savedSet = data.sets[setId];
-            const rater = appInstances[setId];
-
-            if (!rater || !savedSet) return;
-
-            // Restore title
-            const titleInput = document.getElementById(`title-${setId}`);
-            if (titleInput && savedSet.title) {
-                titleInput.value = savedSet.title;
-            }
-
-            // Restore isManualScore flag
-            if (savedSet.isManualScore !== undefined) {
-                rater.isManualScore = savedSet.isManualScore;
-            }
-
-            // Clear existing wines
-            rater.wines = [];
-            rater.wineListEl.innerHTML = '';
-
-            // Restore wines
-            if (savedSet.wines && savedSet.wines.length > 0) {
-                savedSet.wines.forEach((savedWine, index) => {
-                    const id = Date.now() + Math.random() + index;
-                    const wine = {
-                        id,
-                        name: savedWine.name || '',
-                        score: savedWine.score || 0.0
-                    };
-                    rater.wines.push(wine);
-                    rater.renderWine(wine, false); // No animation on restore
-                });
-            } else {
-                // If no saved wines, initialize with minimum
-                for (let i = 0; i < rater.minWines; i++) {
-                    rater.addWine(false);
-                }
-            }
-
-            rater.updateUI();
-        });
-
+        applyAppData(data);
         return true;
     } catch (error) {
         console.error('Failed to load from localStorage:', error);
         return false;
     }
+}
+
+// Restore all sets from a data object ({ sets: { 1: {...}, ... } })
+function applyAppData(data) {
+    // Restore each set's data
+    Object.keys(data.sets).forEach(setId => {
+        const savedSet = data.sets[setId];
+        const rater = appInstances[setId];
+
+        if (!rater || !savedSet) return;
+
+        // Restore title
+        const titleInput = document.getElementById(`title-${setId}`);
+        if (titleInput && savedSet.title) {
+            titleInput.value = savedSet.title;
+        }
+
+        // Restore isManualScore flag
+        if (savedSet.isManualScore !== undefined) {
+            rater.isManualScore = savedSet.isManualScore;
+        }
+
+        // Clear existing wines
+        rater.wines = [];
+        rater.wineListEl.innerHTML = '';
+
+        // Restore wines
+        if (savedSet.wines && savedSet.wines.length > 0) {
+            savedSet.wines.forEach((savedWine, index) => {
+                const id = Date.now() + Math.random() + index;
+                const wine = {
+                    id,
+                    name: savedWine.name || '',
+                    score: savedWine.score || 0.0
+                };
+                rater.wines.push(wine);
+                rater.renderWine(wine, false); // No animation on restore
+            });
+        } else {
+            // If no saved wines, initialize with minimum
+            for (let i = 0; i < rater.minWines; i++) {
+                rater.addWine(false);
+            }
+        }
+
+        rater.updateUI();
+    });
 }
 
 function showResetModal() {
@@ -987,4 +996,201 @@ document.getElementById('export-btn').addEventListener('click', showExportModal)
 const resetBtn = document.getElementById('reset-btn');
 if (resetBtn) {
     resetBtn.addEventListener('click', showResetModal);
+}
+
+// ========================================
+// Backup (save to / load from a JSON file)
+// ========================================
+
+const BACKUP_APP_ID = 'wine-rater';
+const BACKUP_VERSION = 1;
+
+function downloadBackup() {
+    const data = collectAppData();
+    const backup = {
+        app: BACKUP_APP_ID,
+        version: BACKUP_VERSION,
+        exportedAt: data.lastSaved,
+        sets: data.sets
+    };
+
+    // Local time for the filename (e.g. wine_rater_backup_20261117_2130.json)
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
+    const filename = `wine_rater_backup_${stamp}.json`;
+
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+
+    return filename;
+}
+
+// Validate a parsed backup file and return clean data, or null if invalid
+function normalizeBackupData(raw) {
+    if (!raw || typeof raw !== 'object' || !raw.sets || typeof raw.sets !== 'object') {
+        return null;
+    }
+
+    const sets = {};
+    Object.keys(raw.sets).forEach(setId => {
+        const savedSet = raw.sets[setId];
+        if (!appInstances[setId] || !savedSet || !Array.isArray(savedSet.wines)) return;
+
+        sets[setId] = {
+            title: typeof savedSet.title === 'string' ? savedSet.title : '',
+            isManualScore: savedSet.isManualScore === true,
+            wines: savedSet.wines.map(wine => {
+                const score = Number(wine && wine.score);
+                return {
+                    name: wine && wine.name != null ? String(wine.name) : '',
+                    score: Number.isFinite(score) ? score : 0
+                };
+            })
+        };
+    });
+
+    return Object.keys(sets).length > 0 ? { sets } : null;
+}
+
+function importBackupFile(file, statusEl) {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+        let data;
+        try {
+            data = normalizeBackupData(JSON.parse(reader.result));
+        } catch (error) {
+            data = null;
+        }
+
+        if (!data) {
+            statusEl.style.color = 'var(--error)';
+            statusEl.textContent = 'このファイルは読み込めません。このアプリで保存したバックアップファイルを選んでください。';
+            return;
+        }
+
+        const wineCount = Object.values(data.sets).reduce(
+            (sum, set) => sum + set.wines.filter(wine => wine.name.trim() !== '').length, 0
+        );
+        const ok = window.confirm(
+            `バックアップ（ワイン ${wineCount} 件）を読み込みます。\n現在の入力内容はすべて置き換えられます。よろしいですか？`
+        );
+        if (!ok) return;
+
+        applyAppData(data);
+        saveToLocalStorage();
+
+        statusEl.style.color = 'var(--success)';
+        statusEl.textContent = 'バックアップを読み込みました。';
+    };
+
+    reader.onerror = () => {
+        statusEl.style.color = 'var(--error)';
+        statusEl.textContent = 'ファイルの読み込みに失敗しました。';
+    };
+
+    reader.readAsText(file);
+}
+
+function showBackupModal() {
+    const existingModal = document.getElementById('backup-modal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    const modal = document.createElement('div');
+    modal.className = 'help-modal'; // Reuse help modal styling
+    modal.id = 'backup-modal';
+
+    modal.innerHTML = `
+        <div class="help-content" style="max-width: 600px;">
+            <div class="help-header">
+                <h2>バックアップ</h2>
+                <button class="btn-close" id="close-backup-modal">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="help-body">
+                <p>入力内容（全セットのワイン名・点数・セット名）をファイルに保存し、あとで読み込んで元に戻せます。別の端末やブラウザへデータを移すときにも使えます。</p>
+                <div style="display: flex; gap: 10px; margin: 15px 0; flex-wrap: wrap;">
+                    <button id="backup-save-btn" class="btn-primary" style="flex: 1; display: flex; align-items: center; justify-content: center;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 5px;">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        ファイルに保存
+                    </button>
+                    <button id="backup-load-btn" class="btn-secondary" style="flex: 1; justify-content: center; background: white; border: 1px solid var(--primary); color: var(--primary);">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 5px;">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        ファイルから読み込み
+                    </button>
+                    <input type="file" id="backup-file-input" accept=".json,application/json" style="display: none;">
+                </div>
+                <p id="backup-status" style="font-size: 0.9em; min-height: 1.2em;"></p>
+                <p style="font-size: 0.85em; color: var(--text-muted);">読み込むと現在の入力内容は置き換えられます。iPhone では保存したファイルは「ファイル」アプリの「ダウンロード」に入ります。</p>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const statusEl = document.getElementById('backup-status');
+    const fileInput = document.getElementById('backup-file-input');
+
+    document.getElementById('close-backup-modal').addEventListener('click', () => {
+        modal.remove();
+    });
+
+    document.getElementById('backup-save-btn').addEventListener('click', () => {
+        try {
+            const filename = downloadBackup();
+            statusEl.style.color = 'var(--success)';
+            statusEl.textContent = `${filename} を保存しました。`;
+        } catch (error) {
+            console.error('Backup download failed:', error);
+            statusEl.style.color = 'var(--error)';
+            statusEl.textContent = 'バックアップの保存に失敗しました。';
+        }
+    });
+
+    document.getElementById('backup-load-btn').addEventListener('click', () => {
+        fileInput.value = '';
+        fileInput.click();
+    });
+
+    fileInput.addEventListener('change', () => {
+        const file = fileInput.files && fileInput.files[0];
+        if (file) {
+            importBackupFile(file, statusEl);
+        }
+    });
+
+    // Close on background click
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    });
+}
+
+const backupBtn = document.getElementById('backup-btn');
+if (backupBtn) {
+    backupBtn.addEventListener('click', showBackupModal);
 }
