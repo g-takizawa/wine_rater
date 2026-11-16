@@ -590,6 +590,11 @@ class WineRater {
     }
 }
 
+// Must be defined before instances are created and saved data is loaded
+const STORAGE_KEY = 'wine-rater-data';
+// Skip saving until initialization (including restore) has finished
+let isAppReady = false;
+
 // Initialize 4 instances
 const appInstances = {
     1: new WineRater(1),
@@ -603,6 +608,7 @@ const app = appInstances[1];
 
 // Load saved data from localStorage
 loadFromLocalStorage();
+isAppReady = true;
 
 // Add listeners for title changes (auto-save)
 [1, 2, 3, 4].forEach(setId => {
@@ -635,9 +641,8 @@ function generateCSVContent() {
 // LocalStorage Persistence
 // ========================================
 
-const STORAGE_KEY = 'wine-rater-data';
-
 function saveToLocalStorage() {
+    if (!isAppReady) return;
     try {
         const data = {
             sets: {},
