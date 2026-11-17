@@ -1,3 +1,20 @@
+// Escape text before inserting it into HTML (names and titles can come from backup files)
+function escapeHtml(text) {
+    return String(text ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+// YYYYMMDDhhmmss in the device's local time (toISOString() would give UTC)
+function localTimestamp(date) {
+    const pad = n => String(n).padStart(2, '0');
+    return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}` +
+        `${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
+}
+
 class WineRater {
     constructor(setId) {
         this.setId = setId;
@@ -226,7 +243,13 @@ class WineRater {
         this.wines.forEach(wine => this.refreshNoteUI(wine));
 
         // Update Summary Status
-        if (Math.abs(total - this.targetScore) < 0.01) {
+        const hasNamedWine = this.wines.some(w => noteKey(w.name));
+        if (!hasNamedWine) {
+            // Unused set: neutral instead of a red warning
+            this.scoreSummaryEl.classList.remove('valid', 'invalid');
+            this.statusMessageEl.textContent = 'ワイン名を入力すると点数が割り振られます';
+            this.statusMessageEl.style.color = 'var(--text-muted)';
+        } else if (Math.abs(total - this.targetScore) < 0.01) {
             this.scoreSummaryEl.classList.add('valid');
             this.scoreSummaryEl.classList.remove('invalid');
             this.statusMessageEl.textContent = '完璧！合計が10.00点です';
@@ -254,7 +277,7 @@ class WineRater {
                     class="wine-input"
                     data-wine-id="${wine.id}"
                     placeholder="ワイン名"
-                    value="${wine.name}"
+                    value="${escapeHtml(wine.name)}"
                     enterkeyhint="next">
             </div>
             <div class="score-control">
@@ -449,7 +472,7 @@ class WineRater {
                 <h3>コピー元を選択</h3>
                 <div class="copy-dialog-buttons">
                     ${otherSets.map((id, index) => `
-                        <button class="copy-dialog-btn" data-source="${id}">${titles[index]}</button>
+                        <button class="copy-dialog-btn" data-source="${id}">${escapeHtml(titles[index])}</button>
                     `).join('')}
                     <button class="copy-dialog-btn cancel">キャンセル</button>
                 </div>
@@ -491,7 +514,7 @@ class WineRater {
             <div class="wine-select-item">
                 <label>
                     <input type="checkbox" class="wine-select-checkbox" value="${index}" checked>
-                    <span class="wine-select-name">${wine.name || '(名称未設定)'}</span>
+                    <span class="wine-select-name">${wine.name ? escapeHtml(wine.name) : '(名称未設定)'}</span>
                 </label>
             </div>
         `).join('');
@@ -927,7 +950,7 @@ function generateTSVContent() {
 function downloadCSV(csvContent) {
     // Generate filename with timestamp
     const now = new Date();
-    const timestamp = now.toISOString().replace(/[-:T.]/g, '').slice(0, 14);
+    const timestamp = localTimestamp(now);
     const filename = `wine_ratings_${timestamp}.csv`;
 
     // Try Blob method first (better for large files)
@@ -1012,7 +1035,7 @@ function showExportModal() {
                         クリップボードにコピー
                     </button>
                 </div>
-                <textarea id="csv-textarea" style="width: 100%; height: 200px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; font-size: 12px;" readonly>${csvContent}</textarea>
+                <textarea id="csv-textarea" style="width: 100%; height: 200px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; font-size: 12px;" readonly>${escapeHtml(csvContent)}</textarea>
                 <p id="copy-status" style="margin-top: 5px; font-size: 0.9em; color: var(--success); height: 1.2em;"></p>
             </div>
         </div>
@@ -1029,7 +1052,7 @@ function showExportModal() {
     document.getElementById('modal-download-btn').addEventListener('click', (e) => {
         // Generate filename with timestamp
         const now = new Date();
-        const timestamp = now.toISOString().replace(/[-:T.]/g, '').slice(0, 14);
+        const timestamp = localTimestamp(now);
         const filename = `wine_ratings_${timestamp}.csv`;
 
         // Create download immediately in click handler to avoid Chrome blocking

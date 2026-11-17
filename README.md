@@ -29,6 +29,7 @@
 ### 📱 モバイル対応
 - スマートフォンでも使いやすいレスポンシブデザイン。
 - 入力フォームの最適化（「次へ」ボタンでのスムーズな移動）。
+- ホーム画面に追加すると、アイコンから全画面のアプリとして開けます（iPhone の Safari では共有ボタン →「ホーム画面に追加」）。
 
 ## 🚀 使い方
 
@@ -81,6 +82,7 @@ It supports the 10-point scoring system and allows for parallel evaluation of mu
 ### 📱 Mobile Friendly
 - Responsive design that works well on smartphones.
 - Optimized input forms (smooth navigation with the "Next" button).
+- Add it to your home screen to open it full-screen like an app (on iPhone Safari: Share → "Add to Home Screen").
 
 ## 🚀 How to Use
 
