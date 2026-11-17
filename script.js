@@ -590,8 +590,9 @@ class WineRater {
                         </section>
                         <section>
                             <h3>📤 データのエクスポート</h3>
-                            <p><strong>結果をCSV出力</strong>ボタンから2つの方法でデータを取得できます：</p>
+                            <p><strong>結果を出力</strong>ボタンから次の方法でデータを取得できます：</p>
                             <ul>
+                                <li><strong>感想・人気投票の文面</strong>: 感想と各セットの採点をまとめた文面をコピー、またはメールアプリで開けます。「メール用」と「Markdown（Obsidian用）」を選べます</li>
                                 <li><strong>CSVをダウンロード</strong>: ファイルとして保存（Safari、Firefox、Edgeなどで推奨）</li>
                                 <li><strong>クリップボードにコピー</strong>: タブ区切り形式でコピー。Excelやスプレッドシートに貼り付けると自動的に列に分かれます（<strong>Chrome推奨</strong>）</li>
                             </ul>
@@ -979,7 +980,7 @@ function showExportModal() {
     modal.innerHTML = `
         <div class="help-content" style="max-width: 600px;">
             <div class="help-header">
-                <h2>CSV出力</h2>
+                <h2>結果の出力</h2>
                 <button class="btn-close" id="close-export-modal">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -988,6 +989,24 @@ function showExportModal() {
                 </button>
             </div>
             <div class="help-body">
+                <h3 style="margin: 0 0 6px;">感想・人気投票の文面</h3>
+                <p>感想と各セットの採点をまとめた文面です。下の欄で書き足してからコピーできます。</p>
+                <div style="display: flex; gap: 8px; margin: 10px 0;" role="group" aria-label="文面の形式">
+                    <button id="report-format-email" class="btn-secondary report-format" aria-pressed="true">メール用</button>
+                    <button id="report-format-md" class="btn-secondary report-format" aria-pressed="false">Markdown（Obsidian用）</button>
+                </div>
+                <textarea id="report-textarea" class="report-textarea"></textarea>
+                <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
+                    <button id="report-copy-btn" class="btn-primary" style="flex: 1; display: flex; align-items: center; justify-content: center;">
+                        文面をコピー
+                    </button>
+                    <button id="report-mail-btn" class="btn-secondary" style="flex: 1; justify-content: center; background: white; border: 1px solid var(--primary); color: var(--primary);">
+                        メールアプリで開く
+                    </button>
+                </div>
+                <p id="report-status" style="margin-top: 5px; font-size: 0.9em; min-height: 1.2em;"></p>
+
+                <h3 style="margin: 18px 0 6px;">CSV</h3>
                 <p>以下のボタンからダウンロード、またはテキストをコピーしてください。</p>
                 <div style="display: flex; gap: 10px; margin-bottom: 15px;">
                     <button id="modal-download-btn" class="btn-primary" style="flex: 1; display: flex; align-items: center; justify-content: center;">
@@ -1093,6 +1112,39 @@ function showExportModal() {
         }
     });
 
+    // Report text (notes + voting) for email / Obsidian
+    const reportTextarea = document.getElementById('report-textarea');
+    const reportStatus = document.getElementById('report-status');
+    const formatButtons = {
+        email: document.getElementById('report-format-email'),
+        markdown: document.getElementById('report-format-md')
+    };
+
+    function showReport(format) {
+        reportTextarea.value = format === 'markdown' ? generateMarkdownReport() : generateEmailReport();
+        Object.entries(formatButtons).forEach(([key, btn]) => {
+            btn.setAttribute('aria-pressed', String(key === format));
+        });
+    }
+
+    formatButtons.email.addEventListener('click', () => showReport('email'));
+    formatButtons.markdown.addEventListener('click', () => showReport('markdown'));
+    showReport('email');
+
+    document.getElementById('report-copy-btn').addEventListener('click', () => {
+        copyTextToClipboard(reportTextarea.value).then(ok => {
+            reportStatus.style.color = ok ? 'var(--success)' : 'var(--error)';
+            reportStatus.textContent = ok ? 'コピーしました。メールやメモに貼り付けできます' : 'コピーに失敗しました。欄の文面を選択してコピーしてください';
+            setTimeout(() => reportStatus.textContent = '', 3000);
+        });
+    });
+
+    document.getElementById('report-mail-btn').addEventListener('click', () => {
+        const subject = 'ワイン会の感想と人気投票';
+        const body = reportTextarea.value.replace(/\r?\n/g, '\r\n');
+        window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    });
+
     // Close on background click
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {
@@ -1102,6 +1154,117 @@ function showExportModal() {
 }
 
 document.getElementById('export-btn').addEventListener('click', showExportModal);
+
+// ========================================
+// Report text (notes + voting results)
+// ========================================
+
+// Collect wines (unique by name, in order of first appearance) and per-set results
+function collectReportData() {
+    const wines = [];
+    const numberByName = {};
+
+    Object.values(appInstances).forEach(rater => {
+        rater.wines.forEach(wine => {
+            const key = noteKey(wine.name);
+            if (key && !(key in numberByName)) {
+                numberByName[key] = wines.length + 1;
+                wines.push({ name: key, note: getNote(key).trim() });
+            }
+        });
+    });
+
+    // Names that already start with a number (e.g. "① ..." or "3. ...") are used as-is
+    const label = name => /^[0-9０-９①-⑳]/.test(name) ? name : `${numberByName[name]}. ${name}`;
+
+    const sets = [];
+    Object.values(appInstances).forEach(rater => {
+        const rows = rater.wines
+            .filter(wine => noteKey(wine.name))
+            .map(wine => ({ label: label(noteKey(wine.name)), score: wine.score.toFixed(2) }));
+        if (rows.length === 0) return;
+        const titleInput = document.getElementById(`title-${rater.setId}`);
+        const title = (titleInput && titleInput.value.trim()) || `セット${rater.setId}`;
+        sets.push({ title, rows });
+    });
+
+    return {
+        wines: wines.map(wine => ({ label: label(wine.name), note: wine.note })),
+        sets
+    };
+}
+
+function generateEmailReport() {
+    const { wines, sets } = collectReportData();
+    const lines = [
+        'いつもお世話になっております。',
+        'ワイン会の感想と人気投票の採点をお送りいたします。',
+        ''
+    ];
+
+    const noted = wines.filter(wine => wine.note);
+    if (noted.length > 0) {
+        lines.push('■ 感想', '');
+        noted.forEach(wine => {
+            lines.push(wine.label, wine.note, '');
+        });
+    }
+
+    lines.push('以下、採点リストになります。', '', '■ 人気投票', '');
+    sets.forEach((set, i) => {
+        lines.push(`（${i + 1}）${set.title}`);
+        set.rows.forEach(row => lines.push(`${row.label}　${row.score}`));
+        lines.push('');
+    });
+
+    lines.push('今後ともよろしくお願いいたします。');
+    return lines.join('\n');
+}
+
+function generateMarkdownReport() {
+    const { wines, sets } = collectReportData();
+    const cell = text => text.replace(/\|/g, '｜');
+    const lines = [];
+
+    wines.forEach(wine => {
+        lines.push(`**${wine.label}**`, '');
+        if (wine.note) lines.push(wine.note, '');
+        lines.push('');
+    });
+
+    lines.push('***  ***', '');
+    sets.forEach((set, i) => {
+        lines.push(`（${i + 1}）${set.title}`, '', '| ワイン | 点数 |', '| --- | --- |');
+        set.rows.forEach(row => lines.push(`| ${cell(row.label)} | ${row.score} |`));
+        lines.push('');
+    });
+
+    return lines.join('\n').trim() + '\n';
+}
+
+function copyTextToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text).then(() => true).catch(() => fallbackCopyText(text));
+    }
+    return Promise.resolve(fallbackCopyText(text));
+}
+
+function fallbackCopyText(text) {
+    try {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(textarea);
+        return ok;
+    } catch (error) {
+        console.error('Copy failed:', error);
+        return false;
+    }
+}
 
 // Reset button with proper event handling
 const resetBtn = document.getElementById('reset-btn');
