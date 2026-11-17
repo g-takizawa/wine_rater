@@ -21,7 +21,7 @@
 - **バックアップ**: 全セットの入力内容をファイル（JSON）に保存し、あとで読み込んで復元できます。プライベートブラウズやサイトデータの削除に備える場合や、別の端末・ブラウザへデータを移す場合に使えます。
 
 ### 📤 エクスポート・共有
-- **感想・人気投票の文面**: 感想と各セットの採点をまとめたメール用の文面を作成し、コピーまたはメールアプリで開けます。合計が10.00でない部門があると警告し、ワイン会名を入れるとメールの件名に使います。
+- **感想・人気投票の文面**: 感想と各セットの採点をまとめた文面を作成し、コピーまたはメールアプリで開けます。メール用（プレーンテキスト）とMarkdown（見出しと表の形式）を選べます。合計が10.00でない部門があると警告し、ワイン会名を入れるとメールの件名に使います。
 - **CSVダウンロード**: 評価結果をCSVファイルとしてダウンロードできます。
 - **クリップボードコピー**: Excelやスプレッドシートに直接貼り付けられる形式（TSV）でコピーできます。
 - **ワイン名コピー**: 他のセットからワイン名をコピーして、入力の手間を省けます（特定のワインだけ選んでコピーも可能）。
@@ -37,7 +37,7 @@
 1. **ワイン名の入力**: 評価するワインの名前を入力します。
 2. **点数の調整**: 必要に応じて点数を調整し、合計が10.00点になるようにします（合計が合うと緑色になります）。
 3. **セットの活用**: 複数の投票部門がある場合は、横にスクロールしてSet 2, Set 3...を使用します。
-4. **保存・出力**: 作業は自動保存されます。完了したら「結果を出力」から、感想と採点をまとめたメール用の文面やCSVを出力できます。入力内容を残しておきたい場合は「バックアップ」からファイルに保存できます。
+4. **保存・出力**: 作業は自動保存されます。完了したら「結果を出力」から、感想と採点をまとめた文面（メール用・Markdown）やCSVを出力できます。入力内容を残しておきたい場合は「バックアップ」からファイルに保存できます。
 
 ## 🛠 技術スタック
 
@@ -75,7 +75,7 @@ It supports the 10-point scoring system and allows for parallel evaluation of mu
 - **Backup**: Save all sets to a file (JSON) and load it later to restore your data. Useful in case of private browsing or cleared site data, or for moving data to another device or browser.
 
 ### 📤 Export & Share
-- **Notes & Voting Summary**: Generate a text summarizing your notes and the scores for each set, then copy it or open it in your mail app. It warns you about sets whose total is not 10.00, and uses the event name as the email subject.
+- **Notes & Voting Summary**: Generate a text summarizing your notes and the scores for each set, as plain text (for email) or Markdown (headings and tables), then copy it or open it in your mail app. It warns you about sets whose total is not 10.00, and uses the event name as the email subject.
 - **CSV Download**: Download evaluation results as a CSV file.
 - **Clipboard Copy**: Copy data in a format (TSV) that can be directly pasted into Excel or Google Sheets.
 - **Wine Name Copy**: Copy wine names from other sets to save typing effort (selective copying available).
@@ -91,7 +91,7 @@ It supports the 10-point scoring system and allows for parallel evaluation of mu
 1. **Enter Wine Names**: Input the names of the wines you are evaluating.
 2. **Adjust Scores**: Adjust scores as needed to ensure the total is 10.00 points (the total turns green when correct).
 3. **Use Sets**: If you have multiple Voting Departments, scroll horizontally to use Set 2, Set 3, etc.
-4. **Save & Export**: Work is auto-saved. When finished, use "Export Results" to get an email-ready summary of your notes and scores, or a CSV file. To keep your input, save it to a file with "Backup".
+4. **Save & Export**: Work is auto-saved. When finished, use "Export Results" to get a summary of your notes and scores (for email or as Markdown), or a CSV file. To keep your input, save it to a file with "Backup".
 
 ## 🛠 Tech Stack
 

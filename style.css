@@ -632,6 +632,18 @@ input[type="text"].wine-input::placeholder {
 }
 
 /* Report (notes + voting) text in the export dialog */
+.report-format {
+    flex: 1;
+    justify-content: center;
+    text-align: center;
+}
+
+.btn-secondary.report-format[aria-pressed="true"] {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+
 .report-textarea {
     width: 100%;
     height: 220px;

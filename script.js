@@ -694,7 +694,7 @@ class WineRater {
                         <section>
                             <h3>📤 結果の出力</h3>
                             <ul>
-                                <li><strong>感想・人気投票の文面</strong>: 感想と各セットの採点（「3.50｜1. ワイン名」の形）をまとめた文面です。欄の中で書き足してから、コピーまたはメールアプリで開けます</li>
+                                <li><strong>感想・人気投票の文面</strong>: 感想と各セットの採点（「3.50｜1. ワイン名」の形）をまとめた文面です。「メール用」と「Markdown」（見出しと表の形式）を切り替えられます。欄の中で書き足してから、コピーまたはメールアプリで開けます</li>
                                 <li>合計が10.00でない部門があると、出力画面の上に警告が出ます</li>
                                 <li><strong>ワイン会名</strong>を入れると、メールの件名（例：「2026年11月ワイン会 感想・人気投票」）に使われます。<strong>自分の点数を文面に含める</strong>にチェックすると、感想の見出しに自分の点数が付きます</li>
                                 <li><strong>CSV</strong>: ファイルとしてダウンロード、またはExcel・スプレッドシートに貼り付けられる形でコピーできます（自分の点数と感想の列も含みます）</li>
@@ -1275,6 +1275,10 @@ function showExportModal() {
                         <input type="checkbox" id="include-my-scores"> 自分の点数を文面に含める
                     </label>
                 </div>
+                <div style="display: flex; gap: 8px; margin: 10px 0;" role="group" aria-label="文面の形式">
+                    <button id="report-format-email" class="btn-secondary report-format" aria-pressed="true">メール用</button>
+                    <button id="report-format-md" class="btn-secondary report-format" aria-pressed="false">Markdown</button>
+                </div>
                 <textarea id="report-textarea" class="report-textarea"></textarea>
                 <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
                     <button id="report-copy-btn" class="btn-primary" style="flex: 1; display: flex; align-items: center; justify-content: center;">
@@ -1413,10 +1417,26 @@ function showExportModal() {
         saveToLocalStorage();
     });
 
-    reportTextarea.value = generateEmailReport(false);
-    includeMyScoresEl.addEventListener('change', () => {
-        reportTextarea.value = generateEmailReport(includeMyScoresEl.checked);
-    });
+    const formatButtons = {
+        email: document.getElementById('report-format-email'),
+        markdown: document.getElementById('report-format-md')
+    };
+    let reportFormat = 'email';
+
+    function showReport() {
+        const include = includeMyScoresEl.checked;
+        reportTextarea.value = reportFormat === 'markdown'
+            ? generateMarkdownReport(include)
+            : generateEmailReport(include);
+        Object.entries(formatButtons).forEach(([key, btn]) => {
+            btn.setAttribute('aria-pressed', String(key === reportFormat));
+        });
+    }
+
+    formatButtons.email.addEventListener('click', () => { reportFormat = 'email'; showReport(); });
+    formatButtons.markdown.addEventListener('click', () => { reportFormat = 'markdown'; showReport(); });
+    includeMyScoresEl.addEventListener('change', showReport);
+    showReport();
 
     document.getElementById('report-copy-btn').addEventListener('click', () => {
         copyTextToClipboard(reportTextarea.value).then(ok => {
@@ -1500,6 +1520,28 @@ function generateEmailReport(includeMyScores = false) {
         lines.push(`（${i + 1}）${set.title}`);
         // Score first: it always has the same width, so it lines up in any mail app
         set.rows.forEach(row => lines.push(`${row.score}｜${row.label}`));
+        lines.push('');
+    });
+
+    return lines.join('\n').trim() + '\n';
+}
+
+// Markdown version: bold wine headings with notes, then one table per set
+function generateMarkdownReport(includeMyScores = false) {
+    const { wines, sets } = collectReportData();
+    const cell = text => text.replace(/\|/g, '｜');
+    const lines = [];
+
+    wines.forEach(wine => {
+        const heading = includeMyScores && wine.myScore ? `${wine.label}（${wine.myScore}）` : wine.label;
+        lines.push(`**${heading}**`, '');
+        if (wine.note) lines.push(wine.note, '');
+    });
+
+    lines.push('***', '');
+    sets.forEach(set => {
+        lines.push(`（${set.index}）${set.title}`, '', '| ワイン | 点数 |', '| --- | --- |');
+        set.rows.forEach(row => lines.push(`| ${cell(row.label)} | ${row.score} |`));
         lines.push('');
     });
 
