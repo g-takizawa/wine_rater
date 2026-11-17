@@ -672,7 +672,8 @@ input[type="text"].wine-input::placeholder {
     }
 
     .input-group {
-        width: 100%;
+        /* Name takes the rest of the first row; score moves to the second row */
+        flex: 1 1 calc(100% - 40px);
         order: 1;
     }
 
