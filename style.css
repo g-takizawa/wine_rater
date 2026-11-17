@@ -546,9 +546,69 @@ input[type="text"].wine-input::placeholder {
     cursor: not-allowed;
 }
 
-.wine-note {
+.note-panel {
     flex: 1 1 100%;
     order: 4;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.note-panel[hidden] {
+    display: none;
+}
+
+.note-tools {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.my-score-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.my-score-input {
+    width: 5.5em;
+    padding: 4px 8px;
+    border: 1px solid var(--glass-border);
+    border-radius: 6px;
+    background: #fff;
+    color: var(--text-main);
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.my-score-input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.btn-time {
+    padding: 4px 10px;
+    border: 1px solid rgba(var(--primary-rgb), 0.25);
+    border-radius: 13px;
+    background: #fff;
+    color: var(--primary);
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-time:hover {
+    border-color: var(--primary);
+}
+
+.wine-note {
     width: 100%;
     min-height: 4.5em;
     padding: 8px 10px;
@@ -593,6 +653,102 @@ input[type="text"].wine-input::placeholder {
 .controls {
     display: flex;
     justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.btn-my-distribute {
+    justify-content: center;
+}
+
+/* "Add voting category" card at the end of the sets */
+.add-set-card {
+    display: flex;
+}
+
+.btn-add-set {
+    flex: 1;
+    min-height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: 2px dashed rgba(var(--primary-rgb), 0.3);
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.5);
+    color: var(--primary);
+    font-family: var(--font-body);
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-add-set:hover:not(:disabled) {
+    border-color: var(--primary);
+    background: rgba(255, 255, 255, 0.9);
+}
+
+.btn-add-set:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-remove-set {
+    color: var(--text-muted);
+}
+
+.btn-remove-set:hover {
+    color: var(--error);
+    border-color: var(--error);
+}
+
+/* Export dialog: totals warning and report options */
+.total-warning {
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--error);
+    border-radius: 8px;
+    background: rgba(255, 0, 0, 0.05);
+    color: var(--error);
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.total-warning[hidden] {
+    display: none;
+}
+
+.report-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 10px 0;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.event-name-label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-weight: 600;
+}
+
+.event-name-label input {
+    padding: 6px 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    color: var(--text-main);
+}
+
+.report-check {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
 }
 
 .btn-primary {

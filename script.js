@@ -43,6 +43,15 @@ class WineRater {
         }
 
         this.addBtn.addEventListener('click', () => this.addWine());
+
+        // "Distribute by my scores" button next to "Add wine"
+        const myScoreBtn = document.createElement('button');
+        myScoreBtn.type = 'button';
+        myScoreBtn.className = 'btn-secondary btn-my-distribute';
+        myScoreBtn.textContent = '自分の点数で配分';
+        myScoreBtn.title = '各ワインの「自分の点数」から10点を配分します';
+        myScoreBtn.addEventListener('click', () => this.distributeByMyScores());
+        this.addBtn.parentElement.appendChild(myScoreBtn);
         this.copyBtn.addEventListener('click', () => this.showCopyDialog());
 
         const distributeBtn = document.getElementById(`distribute-btn-${this.setId}`);
@@ -127,21 +136,60 @@ class WineRater {
         }
     }
 
+    // Split 10 points in proportion to each wine's personal score minus a baseline
+    // (85, or 1 below the lowest score if lower), in 0.25 steps that add up to 10.00.
+    distributeByMyScores() {
+        const named = this.wines.filter(w => noteKey(w.name));
+        if (named.length === 0) return;
+
+        const parsed = named.map(w => ({ wine: w, value: parseMyScore(getMyScore(w.name)) }));
+        const missing = parsed.filter(p => p.value === null).map(p => noteKey(p.wine.name));
+        if (missing.length > 0) {
+            window.alert(`自分の点数が入っていないワインがあります：\n${missing.join('\n')}\n\n各ワインの「感想」ボタンから「自分の点数」を入れてください。`);
+            return;
+        }
+
+        const lowest = Math.min(...parsed.map(p => p.value));
+        const baseline = Math.min(85, lowest - 1);
+        const weights = parsed.map(p => p.value - baseline);
+        const totalWeight = weights.reduce((a, b) => a + b, 0);
+        const totalUnits = Math.round(this.targetScore / 0.25); // 40 units of 0.25
+
+        const raw = weights.map(w => totalUnits * w / totalWeight);
+        const units = raw.map(Math.floor);
+        let rest = totalUnits - units.reduce((a, b) => a + b, 0);
+        raw.map((r, i) => ({ i, frac: r - units[i], w: weights[i] }))
+            .sort((a, b) => b.frac - a.frac || b.w - a.w)
+            .forEach(({ i }) => { if (rest > 0) { units[i]++; rest--; } });
+
+        this.wines.forEach(w => w.score = 0);
+        parsed.forEach((p, i) => { p.wine.score = units[i] * 0.25; });
+        this.isManualScore = true;
+        this.wines.forEach(w => this.updateWineScoreDisplay(w));
+        this.updateUI();
+        saveToLocalStorage();
+    }
+
     // Sync the note button state (and open note field) of one wine with its name
     refreshNoteUI(wine) {
         const wineItem = document.getElementById(`wine-${this.setId}-${wine.id}`);
         if (!wineItem) return;
         const noteBtn = wineItem.querySelector('.btn-note');
+        const notePanel = wineItem.querySelector('.note-panel');
         const noteEl = wineItem.querySelector('.wine-note');
+        const myScoreEl = wineItem.querySelector('.my-score-input');
         const key = noteKey(wine.name);
         const note = getNote(wine.name);
+        const myScore = getMyScore(wine.name);
 
         noteBtn.disabled = !key;
-        noteBtn.classList.toggle('has-note', note !== '');
+        noteBtn.classList.toggle('has-note', note !== '' || myScore !== '');
+        noteBtn.querySelector('.btn-note-label').textContent = myScore ? `感想 ${myScore}` : '感想';
         if (!key) {
-            noteEl.hidden = true;
-        } else if (!noteEl.hidden && document.activeElement !== noteEl) {
-            noteEl.value = note;
+            notePanel.hidden = true;
+        } else if (!notePanel.hidden) {
+            if (document.activeElement !== noteEl) noteEl.value = note;
+            if (document.activeElement !== myScoreEl) myScoreEl.value = myScore;
         }
     }
 
@@ -299,7 +347,7 @@ class WineRater {
                     <path d="M12 20h9"></path>
                     <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"></path>
                 </svg>
-                <span>感想</span>
+                <span class="btn-note-label">感想</span>
             </button>
             <button class="btn-icon btn-remove" data-action="remove" data-wine-id="${wine.id}"
                 ${this.wines.length <= this.minWines ? 'disabled' : ''}>
@@ -308,19 +356,30 @@ class WineRater {
                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                 </svg>
             </button>
-            <textarea class="wine-note" rows="3" placeholder="感想（色調・香り・味わい・総評など）" hidden></textarea>
+            <div class="note-panel" hidden>
+                <div class="note-tools">
+                    <label class="my-score-label">自分の点数
+                        <input type="text" class="my-score-input" maxlength="8" placeholder="例 93+" autocomplete="off">
+                    </label>
+                    <button type="button" class="btn-time" title="今の時刻を感想に入れる">時刻を入れる</button>
+                </div>
+                <textarea class="wine-note" rows="3" placeholder="感想（色調・香り・味わい・総評など）"></textarea>
+            </div>
         `;
 
         this.wineListEl.appendChild(div);
 
-        // Note (impression) field: shared by wine name across all sets
+        // Note panel (impression + personal score): shared by wine name across all sets
         const noteBtn = div.querySelector('.btn-note');
+        const notePanel = div.querySelector('.note-panel');
         const noteEl = div.querySelector('.wine-note');
+        const myScoreEl = div.querySelector('.my-score-input');
         noteBtn.addEventListener('click', () => {
             if (!noteKey(wine.name)) return;
-            noteEl.hidden = !noteEl.hidden;
-            if (!noteEl.hidden) {
+            notePanel.hidden = !notePanel.hidden;
+            if (!notePanel.hidden) {
                 noteEl.value = getNote(wine.name);
+                myScoreEl.value = getMyScore(wine.name);
                 noteEl.focus();
             }
         });
@@ -328,6 +387,20 @@ class WineRater {
             setNote(wine.name, noteEl.value);
             refreshAllNoteUI();
             saveToLocalStorage();
+        });
+        myScoreEl.addEventListener('input', () => {
+            setMyScore(wine.name, myScoreEl.value);
+            refreshAllNoteUI();
+            saveToLocalStorage();
+        });
+        div.querySelector('.btn-time').addEventListener('click', () => {
+            const now = new Date();
+            const stamp = `（${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}）`;
+            const pos = noteEl.selectionStart ?? noteEl.value.length;
+            noteEl.value = noteEl.value.slice(0, pos) + stamp + noteEl.value.slice(noteEl.selectionEnd ?? pos);
+            noteEl.focus();
+            noteEl.setSelectionRange(pos + stamp.length, pos + stamp.length);
+            noteEl.dispatchEvent(new Event('input', { bubbles: true }));
         });
         this.refreshNoteUI(wine);
 
@@ -459,7 +532,7 @@ class WineRater {
     }
 
     showCopyDialog() {
-        const otherSets = [1, 2, 3, 4].filter(id => id !== this.setId);
+        const otherSets = setIds().filter(id => id !== this.setId);
         const titles = otherSets.map(id => {
             const titleInput = document.getElementById(`title-${id}`);
             return titleInput ? titleInput.value : `セット${id}`;
@@ -586,7 +659,7 @@ class WineRater {
                             <ol>
                                 <li>各セット（投票部門）にワイン名を入力します。名前を入れると合計10点になるよう自動で点数が割り振られます</li>
                                 <li><strong>+</strong> / <strong>−</strong> ボタンで0.25刻みに調整し、合計を <strong>10.00点</strong> にします（合うと緑色になります）</li>
-                                <li>必要に応じて各ワインの <strong>感想</strong> ボタンから感想を書きます</li>
+                                <li>必要に応じて各ワインの <strong>感想</strong> ボタンから感想と自分の点数を書きます（<strong>自分の点数で配分</strong> ボタンで10点の配分を自動で作れます）</li>
                                 <li><strong>結果を出力</strong> ボタンで、感想と採点をまとめた文面をコピー、またはメールアプリで開きます</li>
                             </ol>
                         </section>
@@ -597,6 +670,7 @@ class WineRater {
                                 <li><strong>ワインを追加</strong> ボタンで最大20本まで追加、ゴミ箱アイコンで削除できます（最低2本は残ります）</li>
                                 <li>各セット右上の<strong>コピーボタン</strong>で、他のセットからワイン名をコピーできます。必要なワインだけ選ぶこともできます（点数はコピーされません）</li>
                                 <li>Enterキーで次の入力欄に移動します。セット名（投票部門名）も書き換えられます</li>
+                                <li>投票部門が5つ以上あるときは、一番下の <strong>投票部門を追加</strong> で増やせます（最大8つ）。追加した部門は右上のゴミ箱アイコンで削除できます</li>
                             </ul>
                         </section>
                         <section>
@@ -604,13 +678,16 @@ class WineRater {
                             <ul>
                                 <li>手動で調整した後でも、各セット右上の<strong>三本線アイコン</strong>で均等割り振り（合計10点）に戻せます</li>
                                 <li>合計が10.00点ちょうどになると緑色、過不足があると赤色で表示されます</li>
+                                <li><strong>自分の点数で配分</strong>: 各ワインの「自分の点数」（例：93、94+）に応じて10点を配分します。点数の差が配分の差になります（85点を基準に、それを上回った分の比で配分）。配分後に + / − で調整できます</li>
                             </ul>
                         </section>
                         <section>
                             <h3>✏️ 感想</h3>
                             <ul>
                                 <li>各ワインの <strong>感想</strong> ボタンで入力欄が開きます。色調・香り・味わい・総評などを自由に書けます</li>
-                                <li>感想を書いたワインは、ボタンが紺色になります</li>
+                                <li><strong>自分の点数</strong>（100点満点など自由な形式。例：93+）も入れられます。入れるとボタンに表示されます</li>
+                                <li><strong>時刻を入れる</strong> ボタンで、今の時刻（例：（19:40））を感想に書き込めます。時間による変化の記録に使えます</li>
+                                <li>感想か自分の点数を入れたワインは、ボタンが紺色になります</li>
                                 <li>同じ名前のワインには、どのセットでも同じ感想が表示されます（1本につき1回書けば済みます）</li>
                             </ul>
                         </section>
@@ -618,7 +695,9 @@ class WineRater {
                             <h3>📤 結果の出力</h3>
                             <ul>
                                 <li><strong>感想・人気投票の文面</strong>: 感想と各セットの採点（「3.50｜1. ワイン名」の形）をまとめた文面です。欄の中で書き足してから、コピーまたはメールアプリで開けます</li>
-                                <li><strong>CSV</strong>: ファイルとしてダウンロード、またはExcel・スプレッドシートに貼り付けられる形でコピーできます（感想の列も含みます）</li>
+                                <li>合計が10.00でない部門があると、出力画面の上に警告が出ます</li>
+                                <li><strong>ワイン会名</strong>を入れると、メールの件名（例：「2026年11月ワイン会 感想・人気投票」）に使われます。<strong>自分の点数を文面に含める</strong>にチェックすると、感想の見出しに自分の点数が付きます</li>
+                                <li><strong>CSV</strong>: ファイルとしてダウンロード、またはExcel・スプレッドシートに貼り付けられる形でコピーできます（自分の点数と感想の列も含みます）</li>
                             </ul>
                         </section>
                         <section>
@@ -660,8 +739,11 @@ const STORAGE_KEY = 'wine-rater-data';
 // Skip saving until initialization (including restore) has finished
 let isAppReady = false;
 
-// Notes (impressions) keyed by wine name, shared across all sets
+// Notes (impressions) and personal scores, keyed by wine name and shared across all sets
 let wineNotes = {};
+let wineMyScores = {};
+// Name of the tasting event (used in the email subject)
+let eventName = '';
 
 function noteKey(name) {
     return (name || '').trim();
@@ -682,22 +764,50 @@ function setNote(name, text) {
     }
 }
 
+// "93" -> 93, "93+" -> 93.3, "94++" -> 94.6, "92-" -> 91.7; null if no number
+function parseMyScore(text) {
+    const match = String(text || '').match(/\d+(\.\d+)?/);
+    if (!match) return null;
+    const plus = (text.match(/[+＋]/g) || []).length;
+    const minus = (text.slice(match.index + match[0].length).match(/[-−ー]/g) || []).length;
+    return parseFloat(match[0]) + 0.3 * plus - 0.3 * minus;
+}
+
+function getMyScore(name) {
+    const key = noteKey(name);
+    return key ? (wineMyScores[key] || '') : '';
+}
+
+function setMyScore(name, text) {
+    const key = noteKey(name);
+    if (!key) return;
+    const value = text.trim();
+    if (value === '') {
+        delete wineMyScores[key];
+    } else {
+        wineMyScores[key] = value;
+    }
+}
+
 function isNameInUse(key) {
     return Object.values(appInstances).some(rater =>
         rater.wines.some(wine => noteKey(wine.name) === key)
     );
 }
 
-// When a wine is renamed (e.g. a typo fixed), carry its note over to the new name
-// as long as no other wine still uses the old name.
+// When a wine is renamed (e.g. a typo fixed), carry its note and personal score over
+// to the new name as long as no other wine still uses the old name.
 function moveNoteOnRename(oldName, newName) {
     const oldKey = noteKey(oldName);
     const newKey = noteKey(newName);
     if (!oldKey || !newKey || oldKey === newKey) return;
-    if (!wineNotes[oldKey] || wineNotes[newKey]) return;
     if (isNameInUse(oldKey)) return;
-    wineNotes[newKey] = wineNotes[oldKey];
-    delete wineNotes[oldKey];
+    [wineNotes, wineMyScores].forEach(map => {
+        if (map[oldKey] && !map[newKey]) {
+            map[newKey] = map[oldKey];
+            delete map[oldKey];
+        }
+    });
 }
 
 function refreshAllNoteUI() {
@@ -706,16 +816,143 @@ function refreshAllNoteUI() {
     });
 }
 
-// Notes for wine names that currently exist in any set
-function usedNotes() {
+// Entries of a name-keyed map whose wine names currently exist in any set
+function usedEntries(map) {
     const result = {};
-    Object.keys(wineNotes).forEach(key => {
-        if (isNameInUse(key)) result[key] = wineNotes[key];
+    Object.keys(map).forEach(key => {
+        if (isNameInUse(key)) result[key] = map[key];
     });
     return result;
 }
 
-// Initialize 4 instances
+function usedNotes() {
+    return usedEntries(wineNotes);
+}
+
+// ========================================
+// Sets (voting categories)
+// ========================================
+
+const BASE_SETS = 4;   // sets 1-4 are always shown
+const MAX_SETS = 8;
+
+function defaultSetTitle(setId) {
+    return setId === 1 ? '総合評価' : `投票部門${setId - 1}`;
+}
+
+function setIds() {
+    return Object.keys(appInstances).map(Number).sort((a, b) => a - b);
+}
+
+function attachTitleListener(setId) {
+    const titleInput = document.getElementById(`title-${setId}`);
+    if (titleInput) {
+        titleInput.addEventListener('input', () => saveToLocalStorage());
+    }
+}
+
+// Build the HTML of an extra set (same structure as sets 1-4 in index.html)
+function createSetElement(setId) {
+    const el = document.createElement('div');
+    el.className = 'glass-container';
+    el.id = `set-${setId}`;
+    el.innerHTML = `
+        <header>
+            <div class="header-content">
+                <div>
+                    <input type="text" class="set-title" id="title-${setId}" value="${escapeHtml(defaultSetTitle(setId))}" placeholder="セット名">
+                    <p class="subtitle">10点満点で評価</p>
+                </div>
+                <div class="header-buttons">
+                    <button id="copy-btn-${setId}" class="btn-copy" title="ワイン名をコピー">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                    </button>
+                    <button id="distribute-btn-${setId}" class="btn-icon-header" title="点数を均等に割り振る">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 6h18"></path>
+                            <path d="M3 12h18"></path>
+                            <path d="M3 18h18"></path>
+                        </svg>
+                    </button>
+                    <button id="remove-set-btn-${setId}" class="btn-icon-header btn-remove-set" title="この投票部門を削除">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </header>
+        <main>
+            <div class="score-summary">
+                <div class="score-card">
+                    <span class="label">合計点</span>
+                    <span class="value" id="total-score-${setId}">0.00</span>
+                    <span class="target">/ 10.00</span>
+                </div>
+                <div class="status-message" id="status-message-${setId}"></div>
+            </div>
+            <div class="wine-list" id="wine-list-${setId}"></div>
+            <div class="controls">
+                <button id="add-wine-btn-${setId}" class="btn-primary">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    ワインを追加
+                </button>
+            </div>
+        </main>
+    `;
+    return el;
+}
+
+// Add an extra set. Returns the new rater, or null if the limit is reached.
+function addSet(setId = null) {
+    const ids = setIds();
+    if (ids.length >= MAX_SETS) return null;
+    const id = setId || Math.max(...ids) + 1;
+    if (appInstances[id]) return appInstances[id];
+
+    const container = document.querySelector('.sets-container');
+    const addCard = document.getElementById('add-set-card');
+    container.insertBefore(createSetElement(id), addCard);
+
+    appInstances[id] = new WineRater(id);
+    attachTitleListener(id);
+    document.getElementById(`remove-set-btn-${id}`).addEventListener('click', () => {
+        const title = document.getElementById(`title-${id}`).value || defaultSetTitle(id);
+        if (window.confirm(`「${title}」を削除します。この部門のワインと点数は消えます（感想は残ります）。よろしいですか？`)) {
+            removeSet(id);
+        }
+    });
+    updateAddSetCard();
+    return appInstances[id];
+}
+
+function removeSet(setId) {
+    if (setId <= BASE_SETS || !appInstances[setId]) return;
+    delete appInstances[setId];
+    const el = document.getElementById(`set-${setId}`);
+    if (el) el.remove();
+    updateAddSetCard();
+    saveToLocalStorage();
+}
+
+function updateAddSetCard() {
+    const btn = document.getElementById('add-set-btn');
+    if (!btn) return;
+    const full = setIds().length >= MAX_SETS;
+    btn.disabled = full;
+    btn.querySelector('.add-set-label').textContent = full
+        ? `投票部門は${MAX_SETS}つまでです`
+        : '投票部門を追加';
+}
+
+// Initialize the 4 base sets
 const appInstances = {
     1: new WineRater(1),
     2: new WineRater(2),
@@ -731,27 +968,34 @@ loadFromLocalStorage();
 isAppReady = true;
 
 // Add listeners for title changes (auto-save)
-[1, 2, 3, 4].forEach(setId => {
-    const titleInput = document.getElementById(`title-${setId}`);
-    if (titleInput) {
-        titleInput.addEventListener('input', () => {
+[1, 2, 3, 4].forEach(attachTitleListener);
+
+const addSetBtn = document.getElementById('add-set-btn');
+if (addSetBtn) {
+    addSetBtn.addEventListener('click', () => {
+        const rater = addSet();
+        if (rater) {
             saveToLocalStorage();
-        });
-    }
-});
+            document.getElementById(`set-${rater.setId}`).scrollIntoView({ behavior: 'smooth', block: 'center' });
+            document.getElementById(`title-${rater.setId}`).select();
+        }
+    });
+}
+updateAddSetCard();
 
 function generateCSVContent() {
-    const rows = [['セット名', 'ワイン名', '点数', '感想']];
+    const rows = [['セット名', 'ワイン名', '点数', '自分の点数', '感想']];
 
     Object.values(appInstances).forEach(rater => {
         const titleInput = document.getElementById(`title-${rater.setId}`);
         const setName = titleInput ? titleInput.value : `セット${rater.setId}`;
 
         rater.wines.forEach(wine => {
-            // Escape quotes in name and note
+            // Escape quotes in name, personal score and note
             const name = (wine.name || '').replace(/"/g, '""');
+            const myScore = getMyScore(wine.name).replace(/"/g, '""');
             const note = getNote(wine.name).replace(/"/g, '""');
-            rows.push([`"${setName}"`, `"${name}"`, wine.score.toFixed(2), `"${note}"`]);
+            rows.push([`"${setName}"`, `"${name}"`, wine.score.toFixed(2), `"${myScore}"`, `"${note}"`]);
         });
     });
 
@@ -767,6 +1011,8 @@ function collectAppData() {
     const data = {
         sets: {},
         notes: { ...wineNotes },
+        myScores: { ...wineMyScores },
+        eventName,
         lastSaved: new Date().toISOString()
     };
 
@@ -814,12 +1060,26 @@ function loadFromLocalStorage() {
 
 // Restore all sets from a data object ({ sets: { 1: {...}, ... } })
 function applyAppData(data) {
-    // Restore notes first so that rendered wines show their note state
+    // Restore notes and personal scores first so that rendered wines show their state
     wineNotes = (data.notes && typeof data.notes === 'object') ? { ...data.notes } : {};
+    wineMyScores = (data.myScores && typeof data.myScores === 'object') ? { ...data.myScores } : {};
+    eventName = typeof data.eventName === 'string' ? data.eventName : '';
+
+    // Match the extra sets (5+) to the data: create missing ones, remove ones not in the data
+    setIds().filter(id => id > BASE_SETS && !(id in data.sets)).forEach(id => removeSet(id));
+    Object.keys(data.sets).map(Number).sort((a, b) => a - b)
+        .filter(id => id > BASE_SETS && id <= MAX_SETS)
+        .forEach(id => addSet(id));
+
+    // Base sets missing from the data are reset to empty (loading replaces everything)
+    const sets = { ...data.sets };
+    for (let id = 1; id <= BASE_SETS; id++) {
+        if (!(id in sets)) sets[id] = { title: defaultSetTitle(id), isManualScore: false, wines: [] };
+    }
 
     // Restore each set's data
-    Object.keys(data.sets).forEach(setId => {
-        const savedSet = data.sets[setId];
+    Object.keys(sets).forEach(setId => {
+        const savedSet = sets[setId];
         const rater = appInstances[setId];
 
         if (!rater || !savedSet) return;
@@ -930,7 +1190,7 @@ function performReset() {
 }
 
 function generateTSVContent() {
-    const rows = [['セット名', 'ワイン名', '点数', '感想']];
+    const rows = [['セット名', 'ワイン名', '点数', '自分の点数', '感想']];
 
     Object.values(appInstances).forEach(rater => {
         const titleInput = document.getElementById(`title-${rater.setId}`);
@@ -940,7 +1200,7 @@ function generateTSVContent() {
             const name = wine.name || '';
             // Tabs and line breaks would split cells when pasted, so flatten them
             const note = getNote(wine.name).replace(/[\t\r\n]+/g, ' ');
-            rows.push([setName, name, wine.score.toFixed(2), note]);
+            rows.push([setName, name, wine.score.toFixed(2), getMyScore(wine.name), note]);
         });
     });
 
@@ -1003,8 +1263,17 @@ function showExportModal() {
                 </button>
             </div>
             <div class="help-body">
+                <div id="total-warning" class="total-warning" hidden></div>
                 <h3 style="margin: 0 0 6px;">感想・人気投票の文面</h3>
                 <p>感想と各セットの採点をまとめた文面です。下の欄で書き足してからコピーできます。</p>
+                <div class="report-options">
+                    <label class="event-name-label">ワイン会名（メールの件名に使います）
+                        <input type="text" id="event-name-input" placeholder="例：2026年11月ワイン会" autocomplete="off">
+                    </label>
+                    <label class="report-check">
+                        <input type="checkbox" id="include-my-scores"> 自分の点数を文面に含める
+                    </label>
+                </div>
                 <textarea id="report-textarea" class="report-textarea"></textarea>
                 <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
                     <button id="report-copy-btn" class="btn-primary" style="flex: 1; display: flex; align-items: center; justify-content: center;">
@@ -1125,7 +1394,28 @@ function showExportModal() {
     // Report text (notes + voting) for email
     const reportTextarea = document.getElementById('report-textarea');
     const reportStatus = document.getElementById('report-status');
-    reportTextarea.value = generateEmailReport();
+    const includeMyScoresEl = document.getElementById('include-my-scores');
+    const eventNameEl = document.getElementById('event-name-input');
+
+    // Warn about sets whose total is not 10.00 (easy to miss before sending)
+    const offSets = collectReportData().sets.filter(set => Math.abs(set.total - 10) > 0.001);
+    const warningEl = document.getElementById('total-warning');
+    if (offSets.length > 0) {
+        warningEl.textContent = '合計が10.00でない部門があります：' +
+            offSets.map(set => `（${set.index}）${set.title} ${set.total.toFixed(2)}`).join('、');
+        warningEl.hidden = false;
+    }
+
+    eventNameEl.value = eventName;
+    eventNameEl.addEventListener('input', () => {
+        eventName = eventNameEl.value.trim();
+        saveToLocalStorage();
+    });
+
+    reportTextarea.value = generateEmailReport(false);
+    includeMyScoresEl.addEventListener('change', () => {
+        reportTextarea.value = generateEmailReport(includeMyScoresEl.checked);
+    });
 
     document.getElementById('report-copy-btn').addEventListener('click', () => {
         copyTextToClipboard(reportTextarea.value).then(ok => {
@@ -1136,7 +1426,7 @@ function showExportModal() {
     });
 
     document.getElementById('report-mail-btn').addEventListener('click', () => {
-        const subject = 'ワイン会の感想と人気投票';
+        const subject = eventName ? `${eventName} 感想・人気投票` : 'ワイン会の感想と人気投票';
         const body = reportTextarea.value.replace(/\r?\n/g, '\r\n');
         window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     });
@@ -1165,7 +1455,7 @@ function collectReportData() {
             const key = noteKey(wine.name);
             if (key && !(key in numberByName)) {
                 numberByName[key] = wines.length + 1;
-                wines.push({ name: key, note: getNote(key).trim() });
+                wines.push({ name: key, note: getNote(key).trim(), myScore: getMyScore(key) });
             }
         });
     });
@@ -1175,30 +1465,32 @@ function collectReportData() {
 
     const sets = [];
     Object.values(appInstances).forEach(rater => {
-        const rows = rater.wines
-            .filter(wine => noteKey(wine.name))
-            .map(wine => ({ label: label(noteKey(wine.name)), score: wine.score.toFixed(2) }));
-        if (rows.length === 0) return;
+        const named = rater.wines.filter(wine => noteKey(wine.name));
+        if (named.length === 0) return;
+        const rows = named.map(wine => ({ label: label(noteKey(wine.name)), score: wine.score.toFixed(2) }));
         const titleInput = document.getElementById(`title-${rater.setId}`);
         const title = (titleInput && titleInput.value.trim()) || `セット${rater.setId}`;
-        sets.push({ title, rows });
+        sets.push({ index: sets.length + 1, title, rows, total: rater.calculateTotal() });
     });
 
     return {
-        wines: wines.map(wine => ({ label: label(wine.name), note: wine.note })),
+        wines: wines.map(wine => ({ label: label(wine.name), note: wine.note, myScore: wine.myScore })),
         sets
     };
 }
 
-function generateEmailReport() {
+function generateEmailReport(includeMyScores = false) {
     const { wines, sets } = collectReportData();
     const lines = [];
 
-    const noted = wines.filter(wine => wine.note);
+    const noted = wines.filter(wine => wine.note || (includeMyScores && wine.myScore));
     if (noted.length > 0) {
         lines.push('■ 感想', '');
         noted.forEach(wine => {
-            lines.push(wine.label, wine.note, '');
+            const heading = includeMyScores && wine.myScore ? `${wine.label}（${wine.myScore}）` : wine.label;
+            lines.push(heading);
+            if (wine.note) lines.push(wine.note);
+            lines.push('');
         });
     }
 
@@ -1257,7 +1549,9 @@ function downloadBackup() {
         version: BACKUP_VERSION,
         exportedAt: data.lastSaved,
         sets: data.sets,
-        notes: usedNotes()
+        notes: usedNotes(),
+        myScores: usedEntries(wineMyScores),
+        eventName
     };
 
     // Local time for the filename (e.g. wine_rater_backup_20261117_2130.json)
@@ -1289,7 +1583,9 @@ function normalizeBackupData(raw) {
     const sets = {};
     Object.keys(raw.sets).forEach(setId => {
         const savedSet = raw.sets[setId];
-        if (!appInstances[setId] || !savedSet || !Array.isArray(savedSet.wines)) return;
+        const id = Number(setId);
+        if (!Number.isInteger(id) || id < 1 || id > MAX_SETS) return;
+        if (!savedSet || !Array.isArray(savedSet.wines)) return;
 
         sets[setId] = {
             title: typeof savedSet.title === 'string' ? savedSet.title : '',
@@ -1315,7 +1611,20 @@ function normalizeBackupData(raw) {
         });
     }
 
-    return Object.keys(sets).length > 0 ? { sets, notes } : null;
+    const myScores = {};
+    if (raw.myScores && typeof raw.myScores === 'object') {
+        Object.keys(raw.myScores).forEach(name => {
+            const key = noteKey(name);
+            const value = raw.myScores[name];
+            if (key && (typeof value === 'string' || typeof value === 'number') && String(value).trim() !== '') {
+                myScores[key] = String(value).trim();
+            }
+        });
+    }
+
+    const name = typeof raw.eventName === 'string' ? raw.eventName.trim() : '';
+
+    return Object.keys(sets).length > 0 ? { sets, notes, myScores, eventName: name } : null;
 }
 
 function importBackupFile(file, statusEl) {
