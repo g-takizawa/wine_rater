@@ -101,9 +101,30 @@ class WineRater {
     updateName(id, name) {
         const wine = this.wines.find(w => w.id === id);
         if (wine) {
+            const oldName = wine.name;
             wine.name = name;
+            moveNoteOnRename(oldName, name);
+            this.refreshNoteUI(wine);
             this.checkAndDistributeScores();
             saveToLocalStorage(); // Auto-save
+        }
+    }
+
+    // Sync the note button state (and open note field) of one wine with its name
+    refreshNoteUI(wine) {
+        const wineItem = document.getElementById(`wine-${this.setId}-${wine.id}`);
+        if (!wineItem) return;
+        const noteBtn = wineItem.querySelector('.btn-note');
+        const noteEl = wineItem.querySelector('.wine-note');
+        const key = noteKey(wine.name);
+        const note = getNote(wine.name);
+
+        noteBtn.disabled = !key;
+        noteBtn.classList.toggle('has-note', note !== '');
+        if (!key) {
+            noteEl.hidden = true;
+        } else if (!noteEl.hidden && document.activeElement !== noteEl) {
+            noteEl.value = note;
         }
     }
 
@@ -201,6 +222,9 @@ class WineRater {
             btn.disabled = this.wines.length <= this.minWines;
         });
 
+        // Update note buttons (names may have been changed by paste or copy)
+        this.wines.forEach(wine => this.refreshNoteUI(wine));
+
         // Update Summary Status
         if (Math.abs(total - this.targetScore) < 0.01) {
             this.scoreSummaryEl.classList.add('valid');
@@ -247,6 +271,11 @@ class WineRater {
                     </svg>
                 </button>
             </div>
+            <button class="btn-icon btn-note" data-action="note" data-wine-id="${wine.id}" title="感想" aria-label="感想">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+            </button>
             <button class="btn-icon btn-remove" data-action="remove" data-wine-id="${wine.id}"
                 ${this.wines.length <= this.minWines ? 'disabled' : ''}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -254,9 +283,28 @@ class WineRater {
                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                 </svg>
             </button>
+            <textarea class="wine-note" rows="3" placeholder="感想（色調・香り・味わい・総評など）" hidden></textarea>
         `;
 
         this.wineListEl.appendChild(div);
+
+        // Note (impression) field: shared by wine name across all sets
+        const noteBtn = div.querySelector('.btn-note');
+        const noteEl = div.querySelector('.wine-note');
+        noteBtn.addEventListener('click', () => {
+            if (!noteKey(wine.name)) return;
+            noteEl.hidden = !noteEl.hidden;
+            if (!noteEl.hidden) {
+                noteEl.value = getNote(wine.name);
+                noteEl.focus();
+            }
+        });
+        noteEl.addEventListener('input', () => {
+            setNote(wine.name, noteEl.value);
+            refreshAllNoteUI();
+            saveToLocalStorage();
+        });
+        this.refreshNoteUI(wine);
 
         // Add input listener
         const input = div.querySelector('.wine-input');
@@ -555,6 +603,7 @@ class WineRater {
                                 <li>点数は0.25刻みで調整できます</li>
                                 <li>Enterキーで次のワイン入力欄に移動します</li>
                                 <li>セット名は編集可能です</li>
+                                <li>各ワインの吹き出しアイコンで感想欄を開けます。同じ名前のワインには、どのセットでも同じ感想が表示されます</li>
                             </ul>
                         </section>
                         <section>
@@ -596,6 +645,61 @@ const STORAGE_KEY = 'wine-rater-data';
 // Skip saving until initialization (including restore) has finished
 let isAppReady = false;
 
+// Notes (impressions) keyed by wine name, shared across all sets
+let wineNotes = {};
+
+function noteKey(name) {
+    return (name || '').trim();
+}
+
+function getNote(name) {
+    const key = noteKey(name);
+    return key ? (wineNotes[key] || '') : '';
+}
+
+function setNote(name, text) {
+    const key = noteKey(name);
+    if (!key) return;
+    if (text.trim() === '') {
+        delete wineNotes[key];
+    } else {
+        wineNotes[key] = text;
+    }
+}
+
+function isNameInUse(key) {
+    return Object.values(appInstances).some(rater =>
+        rater.wines.some(wine => noteKey(wine.name) === key)
+    );
+}
+
+// When a wine is renamed (e.g. a typo fixed), carry its note over to the new name
+// as long as no other wine still uses the old name.
+function moveNoteOnRename(oldName, newName) {
+    const oldKey = noteKey(oldName);
+    const newKey = noteKey(newName);
+    if (!oldKey || !newKey || oldKey === newKey) return;
+    if (!wineNotes[oldKey] || wineNotes[newKey]) return;
+    if (isNameInUse(oldKey)) return;
+    wineNotes[newKey] = wineNotes[oldKey];
+    delete wineNotes[oldKey];
+}
+
+function refreshAllNoteUI() {
+    Object.values(appInstances).forEach(rater => {
+        rater.wines.forEach(wine => rater.refreshNoteUI(wine));
+    });
+}
+
+// Notes for wine names that currently exist in any set
+function usedNotes() {
+    const result = {};
+    Object.keys(wineNotes).forEach(key => {
+        if (isNameInUse(key)) result[key] = wineNotes[key];
+    });
+    return result;
+}
+
 // Initialize 4 instances
 const appInstances = {
     1: new WineRater(1),
@@ -622,16 +726,17 @@ isAppReady = true;
 });
 
 function generateCSVContent() {
-    const rows = [['セット名', 'ワイン名', '点数']];
+    const rows = [['セット名', 'ワイン名', '点数', '感想']];
 
     Object.values(appInstances).forEach(rater => {
         const titleInput = document.getElementById(`title-${rater.setId}`);
         const setName = titleInput ? titleInput.value : `セット${rater.setId}`;
 
         rater.wines.forEach(wine => {
-            // Escape quotes in name
+            // Escape quotes in name and note
             const name = (wine.name || '').replace(/"/g, '""');
-            rows.push([`"${setName}"`, `"${name}"`, wine.score.toFixed(2)]);
+            const note = getNote(wine.name).replace(/"/g, '""');
+            rows.push([`"${setName}"`, `"${name}"`, wine.score.toFixed(2), `"${note}"`]);
         });
     });
 
@@ -646,6 +751,7 @@ function generateCSVContent() {
 function collectAppData() {
     const data = {
         sets: {},
+        notes: { ...wineNotes },
         lastSaved: new Date().toISOString()
     };
 
@@ -693,6 +799,9 @@ function loadFromLocalStorage() {
 
 // Restore all sets from a data object ({ sets: { 1: {...}, ... } })
 function applyAppData(data) {
+    // Restore notes first so that rendered wines show their note state
+    wineNotes = (data.notes && typeof data.notes === 'object') ? { ...data.notes } : {};
+
     // Restore each set's data
     Object.keys(data.sets).forEach(setId => {
         const savedSet = data.sets[setId];
@@ -806,7 +915,7 @@ function performReset() {
 }
 
 function generateTSVContent() {
-    const rows = [['セット名', 'ワイン名', '点数']];
+    const rows = [['セット名', 'ワイン名', '点数', '感想']];
 
     Object.values(appInstances).forEach(rater => {
         const titleInput = document.getElementById(`title-${rater.setId}`);
@@ -814,7 +923,9 @@ function generateTSVContent() {
 
         rater.wines.forEach(wine => {
             const name = wine.name || '';
-            rows.push([setName, name, wine.score.toFixed(2)]);
+            // Tabs and line breaks would split cells when pasted, so flatten them
+            const note = getNote(wine.name).replace(/[\t\r\n]+/g, ' ');
+            rows.push([setName, name, wine.score.toFixed(2), note]);
         });
     });
 
@@ -1011,7 +1122,8 @@ function downloadBackup() {
         app: BACKUP_APP_ID,
         version: BACKUP_VERSION,
         exportedAt: data.lastSaved,
-        sets: data.sets
+        sets: data.sets,
+        notes: usedNotes()
     };
 
     // Local time for the filename (e.g. wine_rater_backup_20261117_2130.json)
@@ -1058,7 +1170,18 @@ function normalizeBackupData(raw) {
         };
     });
 
-    return Object.keys(sets).length > 0 ? { sets } : null;
+    const notes = {};
+    if (raw.notes && typeof raw.notes === 'object') {
+        Object.keys(raw.notes).forEach(name => {
+            const key = noteKey(name);
+            const text = raw.notes[name];
+            if (key && typeof text === 'string' && text.trim() !== '') {
+                notes[key] = text;
+            }
+        });
+    }
+
+    return Object.keys(sets).length > 0 ? { sets, notes } : null;
 }
 
 function importBackupFile(file, statusEl) {
@@ -1123,7 +1246,7 @@ function showBackupModal() {
                 </button>
             </div>
             <div class="help-body">
-                <p>入力内容（全セットのワイン名・点数・セット名）をファイルに保存し、あとで読み込んで元に戻せます。別の端末やブラウザへデータを移すときにも使えます。</p>
+                <p>入力内容（全セットのワイン名・点数・感想・セット名）をファイルに保存し、あとで読み込んで元に戻せます。別の端末やブラウザへデータを移すときにも使えます。</p>
                 <div style="display: flex; gap: 10px; margin: 15px 0; flex-wrap: wrap;">
                     <button id="backup-save-btn" class="btn-primary" style="flex: 1; display: flex; align-items: center; justify-content: center;">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 5px;">

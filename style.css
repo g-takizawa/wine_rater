@@ -502,6 +502,45 @@ input[type="text"].wine-input::placeholder {
     opacity: 0.6;
 }
 
+/* Note (impression) button and field */
+.wine-item {
+    flex-wrap: wrap;
+}
+
+.btn-note {
+    opacity: 0.6;
+}
+
+.btn-note.has-note {
+    color: var(--primary);
+    opacity: 1;
+}
+
+.wine-note {
+    flex: 1 1 100%;
+    order: 4;
+    width: 100%;
+    min-height: 4.5em;
+    padding: 8px 10px;
+    border: 1px solid var(--glass-border);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.8);
+    color: var(--text-main);
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    resize: vertical;
+}
+
+.wine-note:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.wine-note[hidden] {
+    display: none;
+}
+
 .btn-remove:hover {
     background: rgba(255, 50, 50, 0.1);
     color: var(--error);
@@ -686,6 +725,7 @@ input[type="text"].wine-input::placeholder {
         margin-left: auto;
     }
 
+    .btn-note,
     .btn-remove {
         order: 3;
     }

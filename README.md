@@ -10,6 +10,7 @@
 - **一括入力**: ワイン名のリストをコピー＆ペーストするだけで、自動的に複数の入力欄に振り分けられます。
 - **手動調整**: `+` / `-` ボタンで0.25点刻みの微調整が可能です。
 - **均等割り振りリセット**: 手動調整後でも、ボタン一つで均等割り振り（合計10点）に戻せます。
+- **感想メモ**: 各ワインに自由記述の感想欄（色調・香り・味わい・総評など）があります。同じ名前のワインには、どのセットでも同じ感想が表示されます。感想はCSV出力とバックアップにも含まれます。
 - **4つの投票部門**: 最大4つのセット（投票部門）をタブ切り替えなしで同時に管理できます。
 
 ### 💾 データ管理
@@ -60,6 +61,7 @@ It supports the 10-point scoring system and allows for parallel evaluation of mu
 - **Bulk Entry**: Simply copy and paste a list of wine names to automatically populate multiple input fields.
 - **Manual Adjustment**: Fine-tune scores in 0.25 increments using `+` / `-` buttons.
 - **Even Distribution Reset**: Reset scores to an even distribution (totaling 10 points) with a single click, even after manual adjustments.
+- **Tasting Notes**: Each wine has a free-text notes field (color, aroma, palate, overall impression, etc.). Wines with the same name share the same note across all sets. Notes are included in CSV export and backups.
 - **4 Voting Departments**: Manage up to 4 sets (Voting Departments) simultaneously without switching tabs.
 
 ### 💾 Data Management
