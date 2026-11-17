@@ -707,6 +707,7 @@ class WineRater {
                                 <li>プライベートブラウズやサイトデータの削除でデータは消えます。<strong>バックアップ</strong>ボタンからファイルに保存しておくと、あとで読み込んで元に戻せます</li>
                                 <li>バックアップファイルを別の端末やブラウザで読み込むと、データを移せます（読み込むと現在の入力内容は置き換えられます）</li>
                                 <li><strong>リセット</strong>ボタンで全データを削除して初期状態に戻せます</li>
+                                <li>ページ一番下の <strong>最新版を確認</strong> で、アプリの新しい版があれば読み込み直します（ホーム画面に追加したときの再読み込みにも使えます。入力内容はそのまま残ります）</li>
                             </ul>
                         </section>
                     </div>
@@ -1759,4 +1760,49 @@ function showBackupModal() {
 const backupBtn = document.getElementById('backup-btn');
 if (backupBtn) {
     backupBtn.addEventListener('click', showBackupModal);
+}
+
+// ========================================
+// Check for a newer version (home-screen apps have no reload button)
+// ========================================
+
+async function checkForUpdate() {
+    const btn = document.getElementById('update-check-btn');
+    const statusEl = document.getElementById('update-status');
+    const current = document.getElementById('app-version').textContent.trim();
+
+    btn.disabled = true;
+    statusEl.textContent = '確認しています…';
+    try {
+        // Fetch the page from the server, bypassing the browser cache
+        const html = await fetch(`./?t=${Date.now()}`, { cache: 'no-store' }).then(r => {
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            return r.text();
+        });
+        const match = html.match(/id="app-version">([^<]+)</);
+        const latest = match ? match[1].trim() : null;
+
+        if (!latest) throw new Error('version not found');
+        if (latest === current) {
+            statusEl.textContent = `最新版です（${current}）`;
+            btn.disabled = false;
+            return;
+        }
+
+        statusEl.textContent = `新しい版（${latest}）を読み込んでいます…`;
+        saveToLocalStorage();
+        // Refresh the cached copies of the app files, then reload
+        await Promise.all(['./', 'index.html', 'script.js', 'style.css', 'manifest.webmanifest']
+            .map(f => fetch(f, { cache: 'reload' }).catch(() => null)));
+        window.location.reload();
+    } catch (error) {
+        console.error('Update check failed:', error);
+        statusEl.textContent = '確認できませんでした。通信状態を確かめて、もう一度押してください';
+        btn.disabled = false;
+    }
+}
+
+const updateCheckBtn = document.getElementById('update-check-btn');
+if (updateCheckBtn) {
+    updateCheckBtn.addEventListener('click', checkForUpdate);
 }
