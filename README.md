@@ -16,6 +16,7 @@
 - **自動保存**: 入力内容はブラウザのローカルストレージに即座に保存されます。リロードしてもデータは消えません。
 - **データ復元**: ページを開き直すと、前回の作業状態が自動的に復元されます。
 - **リセット機能**: 全データを削除して初期状態に戻す機能があります（誤操作防止の確認画面あり）。
+- **バックアップ**: 全セットの入力内容をファイル（JSON）に保存し、あとで読み込んで復元できます。プライベートブラウズやサイトデータの削除に備える場合や、別の端末・ブラウザへデータを移す場合に使えます。
 
 ### 📤 エクスポート・共有
 - **CSVダウンロード**: 評価結果をCSVファイルとしてダウンロードできます。
@@ -32,7 +33,7 @@
 1. **ワイン名の入力**: 評価するワインの名前を入力します。
 2. **点数の調整**: 必要に応じて点数を調整し、合計が10.00点になるようにします（合計が合うと緑色になります）。
 3. **セットの活用**: 複数の投票部門がある場合は、横にスクロールしてSet 2, Set 3...を使用します。
-4. **保存・出力**: 作業は自動保存されます。完了したら「結果をCSV出力」からデータを保存してください。
+4. **保存・出力**: 作業は自動保存されます。完了したら「結果をCSV出力」からデータを保存してください。入力内容を残しておきたい場合は「バックアップ」からファイルに保存できます。
 
 ## 🛠 技術スタック
 
@@ -65,6 +66,7 @@ It supports the 10-point scoring system and allows for parallel evaluation of mu
 - **Auto-Save**: Input is instantly saved to the browser's local storage. Data persists even after reloading.
 - **Data Restoration**: Previous work state is automatically restored when reopening the page.
 - **Reset Function**: Feature to clear all data and return to the initial state (with a confirmation dialog to prevent accidental deletion).
+- **Backup**: Save all sets to a file (JSON) and load it later to restore your data. Useful in case of private browsing or cleared site data, or for moving data to another device or browser.
 
 ### 📤 Export & Share
 - **CSV Download**: Download evaluation results as a CSV file.
@@ -81,7 +83,7 @@ It supports the 10-point scoring system and allows for parallel evaluation of mu
 1. **Enter Wine Names**: Input the names of the wines you are evaluating.
 2. **Adjust Scores**: Adjust scores as needed to ensure the total is 10.00 points (the total turns green when correct).
 3. **Use Sets**: If you have multiple Voting Departments, scroll horizontally to use Set 2, Set 3, etc.
-4. **Save & Export**: Work is auto-saved. When finished, use "Export Results" to save your data.
+4. **Save & Export**: Work is auto-saved. When finished, use "Export Results" to save your data. To keep your input, save it to a file with "Backup".
 
 ## 🛠 Tech Stack
 
