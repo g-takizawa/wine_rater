@@ -1213,7 +1213,8 @@ function generateEmailReport() {
     lines.push('以下、採点リストになります。', '', '■ 人気投票', '');
     sets.forEach((set, i) => {
         lines.push(`（${i + 1}）${set.title}`);
-        set.rows.forEach(row => lines.push(`${row.label}　${row.score}`));
+        // Score first: it always has the same width, so it lines up in any mail app
+        set.rows.forEach(row => lines.push(`${row.score}｜${row.label}`));
         lines.push('');
     });
 
