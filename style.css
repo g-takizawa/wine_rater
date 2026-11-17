@@ -1,27 +1,26 @@
 :root {
-    /* Wine Theme Colors */
-    --primary-hue: 345;
-    /* Burgundy/Wine Red */
-    --primary: hsl(var(--primary-hue), 60%, 40%);
-    /* Deep Burgundy */
-    --primary-light: hsl(var(--primary-hue), 60%, 50%);
-    /* Lighter Burgundy for hover */
-    --primary-dark: hsl(var(--primary-hue), 60%, 30%);
-    /* Darker Burgundy */
+    /* Theme Colors (navy, neutral for red / white / sparkling wines) */
+    --primary-rgb: 47, 74, 109;
+    --primary: rgb(var(--primary-rgb));
+    /* Deep navy #2F4A6D */
+    --primary-light: #3e5f8a;
+    /* Lighter navy for hover */
+    --primary-dark: #23384f;
+    /* Darker navy */
 
-    --bg-main: #f9f5f6;
-    /* Very pale pinkish/beige background */
+    --bg-main: #f4f6f9;
+    /* Very pale gray background */
     --bg-card: #ffffff;
 
     --glass-bg: rgba(255, 255, 255, 0.7);
     /* More opaque white for light theme */
-    --glass-border: rgba(128, 0, 32, 0.1);
-    /* Subtle burgundy border */
+    --glass-border: rgba(var(--primary-rgb), 0.1);
+    /* Subtle navy border */
 
-    --text-main: #4a2c36;
-    /* Dark brownish-red for text */
-    --text-muted: #8c6b74;
-    /* Muted brownish-red */
+    --text-main: #2a3340;
+    /* Ink color for text */
+    --text-muted: #6b7685;
+    /* Muted gray */
 
     --success: hsl(150, 40%, 40%);
     --error: hsl(0, 60%, 50%);
@@ -73,8 +72,8 @@ body {
     width: 100%;
     height: 100%;
     background:
-        radial-gradient(circle at 10% 20%, rgba(128, 0, 32, 0.05) 0%, transparent 40%),
-        radial-gradient(circle at 90% 80%, rgba(128, 0, 32, 0.05) 0%, transparent 40%);
+        radial-gradient(circle at 10% 20%, rgba(var(--primary-rgb), 0.05) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(var(--primary-rgb), 0.05) 0%, transparent 40%);
     z-index: -1;
 }
 
@@ -93,7 +92,7 @@ body {
     border: 1px solid var(--glass-border);
     border-radius: 20px;
     padding: 16px;
-    box-shadow: 0 10px 30px rgba(128, 0, 32, 0.05);
+    box-shadow: 0 10px 30px rgba(var(--primary-rgb), 0.05);
 }
 
 header {
@@ -195,7 +194,7 @@ header {
 
 .global-controls .btn-help:hover {
     transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(128, 0, 32, 0.15);
+    box-shadow: 0 6px 16px rgba(var(--primary-rgb), 0.15);
 }
 
 .help-modal {
@@ -204,8 +203,8 @@ header {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(74, 44, 54, 0.6);
-    /* Dark burgundy overlay */
+    background: rgba(42, 51, 64, 0.6);
+    /* Dark ink overlay */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -449,7 +448,7 @@ input[type="text"].wine-input:focus {
 }
 
 input[type="text"].wine-input::placeholder {
-    color: rgba(140, 107, 116, 0.4);
+    color: rgba(107, 118, 133, 0.4);
 }
 
 .score-control {
@@ -479,7 +478,7 @@ input[type="text"].wine-input::placeholder {
 }
 
 .btn-icon:hover {
-    background: rgba(128, 0, 32, 0.1);
+    background: rgba(var(--primary-rgb), 0.1);
     color: var(--primary);
 }
 
@@ -508,12 +507,43 @@ input[type="text"].wine-input::placeholder {
 }
 
 .btn-note {
-    opacity: 0.6;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    height: 26px;
+    padding: 0 8px;
+    border: 1px solid rgba(var(--primary-rgb), 0.25);
+    border-radius: 13px;
+    background: #fff;
+    color: var(--text-muted);
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.2s;
 }
 
-.btn-note.has-note {
+.btn-note:hover:not(:disabled) {
+    border-color: var(--primary);
     color: var(--primary);
-    opacity: 1;
+}
+
+/* Filled when the wine already has a note */
+.btn-note.has-note {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+}
+
+.btn-note.has-note:hover:not(:disabled) {
+    background: var(--primary-light);
+    color: #fff;
+}
+
+.btn-note:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
 }
 
 .wine-note {
@@ -579,13 +609,13 @@ input[type="text"].wine-input::placeholder {
     align-items: center;
     gap: 6px;
     transition: all 0.2s;
-    box-shadow: 0 4px 12px rgba(128, 0, 32, 0.2);
+    box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.2);
 }
 
 .btn-primary:hover {
     background: var(--primary-light);
     transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(128, 0, 32, 0.3);
+    box-shadow: 0 6px 16px rgba(var(--primary-rgb), 0.3);
 }
 
 .btn-primary:disabled {
@@ -616,7 +646,7 @@ input[type="text"].wine-input::placeholder {
     border-color: var(--primary);
     color: var(--primary);
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(128, 0, 32, 0.1);
+    box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.1);
 }
 
 /* Copy Dialog */
@@ -626,7 +656,7 @@ input[type="text"].wine-input::placeholder {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(74, 44, 54, 0.6);
+    background: rgba(42, 51, 64, 0.6);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -660,7 +690,7 @@ input[type="text"].wine-input::placeholder {
 }
 
 .copy-dialog-btn {
-    background: #f9f5f6;
+    background: var(--bg-main);
     border: 1px solid var(--glass-border);
     color: var(--text-main);
     padding: 12px;
