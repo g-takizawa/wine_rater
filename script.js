@@ -592,7 +592,7 @@ class WineRater {
                             <h3>📤 データのエクスポート</h3>
                             <p><strong>結果を出力</strong>ボタンから次の方法でデータを取得できます：</p>
                             <ul>
-                                <li><strong>感想・人気投票の文面</strong>: 感想と各セットの採点をまとめた文面をコピー、またはメールアプリで開けます。「メール用」と「Markdown（Obsidian用）」を選べます</li>
+                                <li><strong>感想・人気投票の文面</strong>: 感想と各セットの採点をまとめた文面をコピー、またはメールアプリで開けます</li>
                                 <li><strong>CSVをダウンロード</strong>: ファイルとして保存（Safari、Firefox、Edgeなどで推奨）</li>
                                 <li><strong>クリップボードにコピー</strong>: タブ区切り形式でコピー。Excelやスプレッドシートに貼り付けると自動的に列に分かれます（<strong>Chrome推奨</strong>）</li>
                             </ul>
@@ -991,10 +991,6 @@ function showExportModal() {
             <div class="help-body">
                 <h3 style="margin: 0 0 6px;">感想・人気投票の文面</h3>
                 <p>感想と各セットの採点をまとめた文面です。下の欄で書き足してからコピーできます。</p>
-                <div style="display: flex; gap: 8px; margin: 10px 0;" role="group" aria-label="文面の形式">
-                    <button id="report-format-email" class="btn-secondary report-format" aria-pressed="true">メール用</button>
-                    <button id="report-format-md" class="btn-secondary report-format" aria-pressed="false">Markdown（Obsidian用）</button>
-                </div>
                 <textarea id="report-textarea" class="report-textarea"></textarea>
                 <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
                     <button id="report-copy-btn" class="btn-primary" style="flex: 1; display: flex; align-items: center; justify-content: center;">
@@ -1112,24 +1108,10 @@ function showExportModal() {
         }
     });
 
-    // Report text (notes + voting) for email / Obsidian
+    // Report text (notes + voting) for email
     const reportTextarea = document.getElementById('report-textarea');
     const reportStatus = document.getElementById('report-status');
-    const formatButtons = {
-        email: document.getElementById('report-format-email'),
-        markdown: document.getElementById('report-format-md')
-    };
-
-    function showReport(format) {
-        reportTextarea.value = format === 'markdown' ? generateMarkdownReport() : generateEmailReport();
-        Object.entries(formatButtons).forEach(([key, btn]) => {
-            btn.setAttribute('aria-pressed', String(key === format));
-        });
-    }
-
-    formatButtons.email.addEventListener('click', () => showReport('email'));
-    formatButtons.markdown.addEventListener('click', () => showReport('markdown'));
-    showReport('email');
+    reportTextarea.value = generateEmailReport();
 
     document.getElementById('report-copy-btn').addEventListener('click', () => {
         copyTextToClipboard(reportTextarea.value).then(ok => {
@@ -1196,11 +1178,7 @@ function collectReportData() {
 
 function generateEmailReport() {
     const { wines, sets } = collectReportData();
-    const lines = [
-        'いつもお世話になっております。',
-        'ワイン会の感想と人気投票の採点をお送りいたします。',
-        ''
-    ];
+    const lines = [];
 
     const noted = wines.filter(wine => wine.note);
     if (noted.length > 0) {
@@ -1215,28 +1193,6 @@ function generateEmailReport() {
         lines.push(`（${i + 1}）${set.title}`);
         // Score first: it always has the same width, so it lines up in any mail app
         set.rows.forEach(row => lines.push(`${row.score}｜${row.label}`));
-        lines.push('');
-    });
-
-    lines.push('今後ともよろしくお願いいたします。');
-    return lines.join('\n');
-}
-
-function generateMarkdownReport() {
-    const { wines, sets } = collectReportData();
-    const cell = text => text.replace(/\|/g, '｜');
-    const lines = [];
-
-    wines.forEach(wine => {
-        lines.push(`**${wine.label}**`, '');
-        if (wine.note) lines.push(wine.note, '');
-        lines.push('');
-    });
-
-    lines.push('***  ***', '');
-    sets.forEach((set, i) => {
-        lines.push(`（${i + 1}）${set.title}`, '', '| ワイン | 点数 |', '| --- | --- |');
-        set.rows.forEach(row => lines.push(`| ${cell(row.label)} | ${row.score} |`));
         lines.push('');
     });
 
